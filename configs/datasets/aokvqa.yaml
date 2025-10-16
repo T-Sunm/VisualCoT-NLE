@@ -1,0 +1,10 @@
+dataset:
+  name: aokvqa
+  split: val
+  images_root: data/raw/val2017
+  annotations_file: coco_annotations/aokvqa_v1p0_val.json
+  captions_file: input_text/vinvl_caption/VinVL_base_val2014.tsv
+  scene_graph_dir: input_text/scene_graph_text/scene_graph_coco17
+  scene_graph_attr_dir: input_text/scene_graph_text/scene_graph_coco17_attr
+  concept_caption_dir: input_text/scene_graph_text/scene_graph_coco17_caption
+

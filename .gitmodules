@@ -1,0 +1,3 @@
+[submodule "VisualCoT"]
+	path = VisualCoT
+	url = https://github.com/ais-lab/VisualCoT.git

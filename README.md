@@ -1,3 +1,15 @@
+# VisualCoT Refactor (See–Think–Confirm)
+
+Quickstart:
+
+1. Create env
+   - Conda: `conda env create -f environment.yml && conda activate visualcot`
+   - Pip: `python -m venv .venv && .venv/Scripts/activate && pip install -r requirements.txt`
+2. Prepare data: See `scripts/download_data.sh` and place datasets under `data/raw/`
+3. Run preprocess (placeholder): `python -m src.cli.preprocess --config configs/experiments/aokvqa_baseline.yaml`
+4. Evaluate (when ready): `python -m src.cli.evaluate --config configs/experiments/aokvqa_baseline.yaml`
+
+See `docs/` for architecture and reproduction details.
 Code for [paper](https://arxiv.org/abs/2301.05226) *Visual Chain-of-Thought Prompting for Knowledge-based Visual Reasoning*
 ## Overall framework
 ![framework](framework.png)

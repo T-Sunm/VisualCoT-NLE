@@ -1,0 +1,9 @@
+pipeline:
+  name: vctp
+  see:
+    name: noop-see
+  think:
+    name: noop-think
+  confirm:
+    name: noop-confirm
+

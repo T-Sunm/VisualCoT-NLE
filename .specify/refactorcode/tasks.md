@@ -9,27 +9,27 @@ Prerequisites: Constitution, Spec, Plan ready
 
 ## Phase 1: Setup & Scaffolding
 
-- [ ] Create directories per plan:
-  - [ ] Create `configs/datasets/`, `configs/models/`, `configs/pipelines/`, `configs/experiments/`
-  - [ ] Create `data/raw/`, `data/processed/`, `data/artifacts/`
-  - [ ] Create `src/vctp/core/`, `src/vctp/see/`, `src/vctp/think/`, `src/vctp/confirm/`
-  - [ ] Create `scripts/`, `tests/`, `docs/`
-- [ ] Add `__init__.py` to all `src/vctp/**/` directories
-- [ ] Create `requirements.txt` with core libs (placeholders):
-  - [ ] Add `torch`, `transformers`, `tqdm`, `numpy`, `pillow`, `pydantic`/`omegaconf`, `pyyaml`
-- [ ] Create `environment.yml` mirroring `requirements.txt`
-- [ ] Create `pyproject.toml` (optional) and `setup.cfg` with linters (flake8, isort, black) basic config
+- [X] Create directories per plan:
+  - [X] Create `configs/datasets/`, `configs/models/`, `configs/pipelines/`, `configs/experiments/`
+  - [X] Create `data/raw/`, `data/processed/`, `data/artifacts/`
+  - [X] Create `src/vctp/core/`, `src/vctp/see/`, `src/vctp/think/`, `src/vctp/confirm/`
+  - [X] Create `scripts/`, `tests/`, `docs/`
+- [X] Add `__init__.py` to all `src/vctp/**/` directories
+- [X] Create `requirements.txt` with core libs (placeholders):
+  - [X] Add `torch`, `transformers`, `tqdm`, `numpy`, `pillow`, `pydantic`/`omegaconf`, `pyyaml`
+- [X] Create `environment.yml` mirroring `requirements.txt`
+- [X] Create `pyproject.toml` (optional) and `setup.cfg` with linters (flake8, isort, black) basic config
 - [ ] Create `.env.example` with placeholders (e.g., `CUDA_VISIBLE_DEVICES`, `WANDB_DISABLED`)
-- [ ] Create `README.md` skeleton (project goal, quickstart install)
-- [ ] Create `LICENSE` (choose MIT/Apache-2.0)
-- [ ] Bootstrap core stubs with docstrings:
-  - [ ] Create `src/vctp/core/types.py` (empty dataclass stubs)
-  - [ ] Create `src/vctp/core/interfaces.py` (empty ABC stubs)
-  - [ ] Create `src/vctp/core/registry.py` (empty registry dict + TODO functions)
-  - [ ] Create `src/vctp/core/pipeline.py` (class stub `VCTPPipeline`)
-  - [ ] Create `src/vctp/core/config.py` (loader stub)
-- [ ] Create `src/vctp/core/utils.py` with `set_global_seed(seed)` and `get_logger(name)` placeholders
-- [ ] Create `scripts/download_data.sh` with comments on where to place datasets
+- [X] Create `README.md` skeleton (project goal, quickstart install)
+- [X] Create `LICENSE` (choose MIT/Apache-2.0)
+- [X] Bootstrap core stubs with docstrings:
+  - [X] Create `src/vctp/core/types.py` (empty dataclass stubs)
+  - [X] Create `src/vctp/core/interfaces.py` (empty ABC stubs)
+  - [X] Create `src/vctp/core/registry.py` (empty registry dict + TODO functions)
+  - [X] Create `src/vctp/core/pipeline.py` (class stub `VCTPPipeline`)
+  - [X] Create `src/vctp/core/config.py` (loader stub)
+- [X] Create `src/vctp/core/utils.py` with `set_global_seed(seed)` and `get_logger(name)` placeholders
+- [X] Create `scripts/download_data.sh` with comments on where to place datasets
 
 ## Phase 2: Data & Config Pipeline
 
@@ -40,39 +40,39 @@ Prerequisites: Constitution, Spec, Plan ready
   - [ ] `configs/datasets/aokvqa.yaml`, `configs/datasets/okvqa.yaml`
   - [ ] `configs/models/llm_opt_1.3b.yaml`, `configs/models/llm_llama_7b.yaml`
   - [ ] `configs/models/clip_vit_l14.yaml`, `configs/models/detector_groundingdino.yaml`
-  - [ ] `configs/pipelines/vctp_default.yaml`, `configs/pipelines/vctp_self_consistency.yaml`
-  - [ ] `configs/experiments/aokvqa_baseline.yaml`, `configs/experiments/okvqa_cot_clipconfirm.yaml`
+  - [X] `configs/pipelines/vctp_default.yaml`, `configs/pipelines/vctp_self_consistency.yaml`
+  - [X] `configs/experiments/aokvqa_baseline.yaml`, `configs/experiments/okvqa_cot_clipconfirm.yaml`
 - [ ] Implement dataset loader `src/vctp/data/loader.py`:
-  - [ ] Create function `build_dataset(dataset_cfg, split)` returning iterable dicts
+  - [X] Create function `build_dataset(dataset_cfg, split)` returning iterable dicts
   - [ ] Implement A-OKVQA wrapper reading images/questions, yielding `image_id, image_path, question, question_id`
   - [ ] Implement OKVQA wrapper similarly
 - [ ] Add preprocess CLI `src/cli/preprocess.py`:
-  - [ ] Parse `--config` (experiment)
-  - [ ] Build dataset and emit placeholder caches to `data/processed/<dataset>/`
+  - [X] Parse `--config` (experiment)
+  - [X] Build dataset and emit placeholder caches to `data/processed/<dataset>/`
   - [ ] Write metadata JSONL with per-sample paths
-- [ ] Add smoke test `tests/test_dataset_smoke.py` to iterate 3 samples from each dataset
+- [X] Add smoke test `tests/test_dataset_smoke.py` to iterate 3 samples from each dataset
 
 ## Phase 3: Core Modules Implementation
 
-- [ ] Flesh out datamodels `src/vctp/core/types.py`:
-  - [ ] Add `DetectedObject`, `EvidenceBundle`, `ReasoningOutput`, `ConfirmationOutput`
-- [ ] Flesh out interfaces `src/vctp/core/interfaces.py`:
-  - [ ] Implement ABCs: `PerceptionModule.run`, `ReasoningModule.run`, `ConfirmationModule.run`
-- [ ] SEE implementation:
-  - [ ] Create `src/vctp/see/perception.py` with class `Perception(PerceptionModule)`
-  - [ ] Create `src/vctp/see/features/clip_extractor.py` (stub extraction using CLIP)
-  - [ ] Create `src/vctp/see/captions/blip_captioner.py` (stub caption)
-  - [ ] Create `src/vctp/see/detectors/groundingdino.py` (stub detector)
-  - [ ] Create `src/vctp/see/graphs/scene_graph_builder.py` (optional stub)
+- [X] Flesh out datamodels `src/vctp/core/types.py`:
+  - [X] Add `DetectedObject`, `EvidenceBundle`, `ReasoningOutput`, `ConfirmationOutput`
+- [X] Flesh out interfaces `src/vctp/core/interfaces.py`:
+  - [X] Implement ABCs: `PerceptionModule.run`, `ReasoningModule.run`, `ConfirmationModule.run`
+- [X] SEE implementation:
+  - [X] Create `src/vctp/see/perception.py` with class `Perception(PerceptionModule)`
+  - [X] Create `src/vctp/see/features/clip_extractor.py` (stub extraction using CLIP)
+  - [X] Create `src/vctp/see/captions/blip_captioner.py` (stub caption)
+  - [X] Create `src/vctp/see/detectors/groundingdino.py` (stub detector)
+  - [X] Create `src/vctp/see/graphs/scene_graph_builder.py` (optional stub)
 - [ ] THINK implementation:
-  - [ ] Create `src/vctp/think/reasoner.py` with class `Reasoner(ReasoningModule)`
-  - [ ] Create `src/vctp/think/llm/opt_adapter.py` (common interface)
-  - [ ] Create `src/vctp/think/llm/llama_adapter.py`
+  - [X] Create `src/vctp/think/reasoner.py` with class `Reasoner(ReasoningModule)`
+  - [X] Create `src/vctp/think/llm/opt_adapter.py` (common interface)
+  - [X] Create `src/vctp/think/llm/llama_adapter.py`
   - [ ] Add `src/vctp/think/prompts/base_prompt.txt`
-- [ ] CONFIRM implementation:
-  - [ ] Create `src/vctp/confirm/confirmer.py` with class `Confirmer(ConfirmationModule)`
-  - [ ] Create `src/vctp/confirm/scorers/clip_scorer.py`
-  - [ ] Create `src/vctp/confirm/scorers/rule_based.py`
+- [X] CONFIRM implementation:
+  - [X] Create `src/vctp/confirm/confirmer.py` with class `Confirmer(ConfirmationModule)`
+  - [X] Create `src/vctp/confirm/scorers/clip_scorer.py`
+  - [X] Create `src/vctp/confirm/scorers/rule_based.py`
 - [ ] Add unit tests:
   - [ ] `tests/see/test_perception_minimal.py` (mocks)
   - [ ] `tests/think/test_reasoner_prompt.py`
@@ -80,20 +80,20 @@ Prerequisites: Constitution, Spec, Plan ready
 
 ## Phase 4: Pipeline Integration & Scripting
 
-- [ ] Implement registry `src/vctp/core/registry.py`:
-  - [ ] Add registries for see/think/confirm modules and factories
-  - [ ] Map YAML names → classes
-- [ ] Implement pipeline `src/vctp/core/pipeline.py`:
-  - [ ] Add `VCTPPipeline.__init__(see, think, confirm)`
-  - [ ] Add `run(sample)` → returns dict with answer, scores, rationale
-  - [ ] Add `run_dataset(dataset)` → list of dicts, saves JSONL to output_dir
+- [X] Implement registry `src/vctp/core/registry.py`:
+  - [X] Add registries for see/think/confirm modules and factories
+  - [X] Map YAML names → classes
+- [X] Implement pipeline `src/vctp/core/pipeline.py`:
+  - [X] Add `VCTPPipeline.__init__(see, think, confirm)`
+  - [X] Add `run(sample)` → returns dict with answer, scores, rationale
+  - [X] Add `run_dataset(dataset)` → list of dicts, saves JSONL to output_dir
 - [ ] Add CLI `src/cli/evaluate.py`:
-  - [ ] Parse `--config`
-  - [ ] Load experiment config, build modules via registry, run pipeline
+  - [X] Parse `--config`
+  - [X] Load experiment config, build modules via registry, run pipeline
   - [ ] Save `results.jsonl`, `metrics.csv`, `config_resolved.yaml`
-- [ ] Add CLI `src/cli/inference.py`:
-  - [ ] Parse `--image`, `--question` or `--input_jsonl`
-  - [ ] Load config, run pipeline on inputs, print/save outputs
+- [X] Add CLI `src/cli/inference.py`:
+  - [X] Parse `--image`, `--question` or `--input_jsonl`
+  - [X] Load config, run pipeline on inputs, print/save outputs
 - [ ] Add smoke test `tests/test_pipeline_smoke.py`
 
 ## Phase 5: Testing, Documentation & Finalization

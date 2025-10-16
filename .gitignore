@@ -1,1 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Logs & env
+*.log
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project data artifacts
+data/processed/
+data/artifacts/
+runs/
+
+# Editors/IDE
+.vscode/
+.idea/
 .idea

@@ -1,0 +1,16 @@
+experiment:
+  seed: 42
+  dataset: aokvqa
+  split: val
+  batch_size: 1
+  num_workers: 0
+  output_dir: runs/aokvqa_baseline
+see:
+  name: noop-see
+think:
+  name: noop-think
+confirm:
+  name: noop-confirm
+datasets:
+  aokvqa: configs/datasets/aokvqa.yaml
+
