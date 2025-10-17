@@ -9,6 +9,7 @@ class DetectedObject:
     name: str
     bbox: List[float]  # [x1, y1, x2, y2]
     score: float
+    attributes: Optional[List[str]] = None
 
 
 @dataclass

@@ -7,8 +7,9 @@ from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).resolve().parents[3]
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
+src_path = project_root / "src"
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
 
 import traceback
 
@@ -113,10 +114,10 @@ def main():
     print("=" * 70)
 
     if passed == total:
-        print("\n🎉 All tests passed! Refactoring is correct!")
+        print("\n All tests passed! Refactoring is correct!")
         return 0
     else:
-        print(f"\n⚠️  {total - passed} test(s) failed. Please check the errors above.")
+        print(f"\n  {total - passed} test(s) failed. Please check the errors above.")
         return 1
 
 

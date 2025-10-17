@@ -1,9 +1,28 @@
-torch
-transformers
-tqdm
-numpy
-pillow
-pydantic
-omegaconf
-pyyaml
+# Core Deep Learning (PyTorch 2.5 - Stable, Oct 2024)
+torch==2.5.0
+torchvision==0.20.0
+torchaudio==2.5.0
 
+# Transformers & NLP
+transformers==4.57.0
+regex==2025.9.18
+ftfy==6.3.1
+
+# Tensor Operations
+einops==0.8.0
+numpy==1.26.4
+
+# Image Processing
+pillow==11.0.0
+
+# Configuration & Data Validation
+pydantic==2.12.2
+omegaconf==2.2.3
+pyyaml==6.0.3
+
+# Utilities
+tqdm==4.67.1
+
+# Optional - chỉ cần nếu dùng trong code
+openai==1.57.4
+# salesforce-lavis==1.0.2
