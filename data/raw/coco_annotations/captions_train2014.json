@@ -1,0 +1,84 @@
+{
+    "annotations": [
+        {
+            "image_id": 0,
+            "caption": "A man standing on the street with luggage waiting for transportation"
+        },
+        {
+            "image_id": 0,
+            "caption": "Person with bags on sidewalk next to road"
+        },
+        {
+            "image_id": 1,
+            "caption": "A man eating pizza at his office desk"
+        },
+        {
+            "image_id": 1,
+            "caption": "Office worker having lunch with pizza and computer"
+        },
+        {
+            "image_id": 2,
+            "caption": "A farmer driving a tractor with sheep in the field"
+        },
+        {
+            "image_id": 2,
+            "caption": "Agricultural vehicle surrounded by livestock"
+        },
+        {
+            "image_id": 3,
+            "caption": "Cars parked on airport tarmac near airplane"
+        },
+        {
+            "image_id": 3,
+            "caption": "Vehicles on the airport runway area"
+        },
+        {
+            "image_id": 4,
+            "caption": "A motorcycle with two seats parked"
+        },
+        {
+            "image_id": 4,
+            "caption": "Two-seater motorcycle on display"
+        },
+        {
+            "image_id": 5,
+            "caption": "Theater poster advertisement on wall"
+        },
+        {
+            "image_id": 5,
+            "caption": "Broadway show promotional display"
+        },
+        {
+            "image_id": 6,
+            "caption": "Cows grazing in a field"
+        },
+        {
+            "image_id": 6,
+            "caption": "Happy cattle standing in grassland"
+        },
+        {
+            "image_id": 7,
+            "caption": "Person with umbrella in heavy rain"
+        },
+        {
+            "image_id": 7,
+            "caption": "Woman walking in downpour with umbrella"
+        },
+        {
+            "image_id": 8,
+            "caption": "Man putting decorative bow on bus"
+        },
+        {
+            "image_id": 8,
+            "caption": "Red bow being attached to vehicle"
+        },
+        {
+            "image_id": 9,
+            "caption": "Street intersection with turn right sign"
+        },
+        {
+            "image_id": 9,
+            "caption": "Road with right turn arrow marking"
+        }
+    ]
+}

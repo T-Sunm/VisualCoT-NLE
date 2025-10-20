@@ -25,4 +25,5 @@ tqdm==4.67.1
 
 # Optional - chỉ cần nếu dùng trong code
 openai==1.57.4
-# salesforce-lavis==1.0.2
+safetensors==0.6.2
+datasets==4.2.0
