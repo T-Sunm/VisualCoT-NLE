@@ -1,9 +1,17 @@
-"""Interactive object selector for Visual CoT."""
-
 from typing import Dict, List, Optional, Tuple
+from pydantic import BaseModel
+from groq import Groq
+import json
+import os
 
-from ..llm import BaseLLMAdapter
 from ..prompts import ObjectSelectionPromptBuilder
+
+
+class ObjectSelection(BaseModel):
+    """Structured response for object selection."""
+
+    selected_object: str
+    reasoning: str
 
 
 class ObjectSelector:
@@ -11,31 +19,31 @@ class ObjectSelector:
 
     def __init__(
         self,
-        llm: BaseLLMAdapter,
-        engine: str = "gpt3",
+        model: str = "llama-3.3-70b-versatile",
         use_attributes: bool = False,
         use_captions: bool = False,
         debug: bool = False,
     ):
         """
-        Initialize object selector.
+        Initialize object selector with GroqCloud.
 
         Args:
-            llm: LLM adapter for selection
-            engine: Engine type (for prompt building)
+            model: Groq model name (e.g., "llama-3.3-70b-versatile", "moonshotai/kimi-k2-instruct-0905")
             use_attributes: Include object attributes in selection
             use_captions: Include object captions in selection
             debug: Enable debug mode
         """
-        self.llm = llm
-        self.engine = engine
+        self.model = model
         self.use_attributes = use_attributes
         self.use_captions = use_captions
         self.debug = debug
 
-        # Prompt builder
+        # Initialize Groq client
+        self.client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+
+        # Prompt builder (use "chat" engine for Groq)
         self.prompt_builder = ObjectSelectionPromptBuilder(
-            engine=engine, use_attributes=use_attributes, use_captions=use_captions
+            engine="chat", use_attributes=use_attributes, use_captions=use_captions
         )
 
     def select_object(
@@ -45,7 +53,7 @@ class ObjectSelector:
         examples: Optional[List[Dict]] = None,
     ) -> int:
         """
-        Select most relevant object for a question.
+        Select most relevant object for a question using Groq structured output.
 
         Args:
             question: Question to answer
@@ -61,113 +69,65 @@ class ObjectSelector:
         # Format object list for prompt
         object_names = [obj[1] for obj in objects]
 
-        # Build prompt
-        prompt = self.prompt_builder.build(
+        # Build prompt - this returns the user message content
+        user_prompt = self.prompt_builder.build(
             question=question, object_list=object_names, examples=examples
         )
 
         if self.debug:
-            print(f"[ObjectSelector] Prompt:\n{prompt}")
+            print(f"[ObjectSelector] Object choices: {object_names}")
+            print(f"[ObjectSelector] User Prompt:\n{user_prompt}")
 
-        # Select based on engine type
-        if self.engine in ["ada", "babbage", "curie", "davinci", "codex", "instruct", "gpt3"]:
-            return self._select_with_gpt3(prompt, object_names)
-        elif self.engine == "chat":
-            return self._select_with_chat(prompt, object_names)
-        elif self.engine in ["opt", "llama"]:
-            return self._select_with_local_model(prompt, object_names)
-        elif self.engine == "chat-test":
-            return 0  # Test mode
-        else:
-            return 0
-
-    def _select_with_gpt3(self, prompt: str, object_names: List[str]) -> int:
-        """Select using GPT-3 Completion API with logit bias."""
-        # Get token IDs for object names
         try:
-            from transformers import GPT2Tokenizer
-        except ImportError:
+            # Call Groq with structured output
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an expert at analyzing visual scenes and selecting the most relevant object for answering questions. Choose the single most important object from the provided list that would help answer the question.",
+                    },
+                    {"role": "user", "content": user_prompt},
+                ],
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "object_selection",
+                        "schema": ObjectSelection.model_json_schema(),
+                    },
+                },
+                temperature=0.1,  # Low temperature for consistent selection
+            )
+
+            # Parse structured response
+            result = ObjectSelection.model_validate(json.loads(response.choices[0].message.content))
+
+            if self.debug:
+                print(f"[ObjectSelector] Selected: {result.selected_object}")
+                print(f"[ObjectSelector] Reasoning: {result.reasoning}")
+
+            # Find index of selected object
+            selected_name = result.selected_object.strip().lower()
+            for idx, obj_name in enumerate(object_names):
+                if obj_name.lower() == selected_name or selected_name in obj_name.lower():
+                    return idx
+
+            # Fallback: try partial matching
+            for idx, obj_name in enumerate(object_names):
+                if obj_name.lower() in selected_name or selected_name in obj_name.lower():
+                    return idx
+
+            if self.debug:
+                print(
+                    f"[ObjectSelector] Warning: Could not find exact match for '{result.selected_object}', using first object"
+                )
+
             return 0
 
-        tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-        obj_token_ids = [tokenizer.encode(f" {obj}")[0] for obj in object_names]
-
-        # Create logit bias to force selection from objects
-        logit_bias = {str(tok_id): 100 for tok_id in obj_token_ids}
-
-        # Generate with logit bias
-        response = self.llm.generate(
-            prompt=prompt, max_tokens=4, logit_bias=logit_bias, stop_tokens=["\n", "<|endoftext|>"]
-        )
-
-        # Parse result
-        tokenizer_response = GPT2Tokenizer.from_pretrained("gpt2")
-        result_tokens = tokenizer_response.encode(response.text)
-
-        if len(result_tokens) > 0 and result_tokens[0] in obj_token_ids:
-            return obj_token_ids.index(result_tokens[0])
-
-        return 0
-
-    def _select_with_chat(self, prompt: str, object_names: List[str]) -> int:
-        """Select using ChatGPT API with logit bias."""
-        try:
-            import tiktoken
-
-            tokenizer = tiktoken.encoding_for_model(self.llm.config.engine_name)
-        except ImportError:
+        except Exception as e:
+            if self.debug:
+                print(f"[ObjectSelector] Error during selection: {e}")
             return 0
-
-        # Get token IDs for object names
-        obj_token_ids = [tokenizer.encode(f" {obj}")[0] for obj in object_names]
-
-        # Create logit bias
-        logit_bias = {str(tok_id): 25 for tok_id in obj_token_ids}
-
-        # Get system prompt from builder
-        system_prompt = self.prompt_builder.OBJECT_SELECTION_SYSTEM_PROMPT
-
-        # Generate
-        response = self.llm.generate(
-            prompt=prompt, max_tokens=5, logit_bias=logit_bias, system_prompt=system_prompt
-        )
-
-        # Parse result
-        result_tokens = tokenizer.encode(response.text)
-
-        if len(result_tokens) > 0 and result_tokens[0] in obj_token_ids:
-            return obj_token_ids.index(result_tokens[0])
-
-        return 0
-
-    def _select_with_local_model(self, prompt: str, object_names: List[str]) -> int:
-        """Select using local models (OPT, LLaMA)."""
-        # Get tokenizer from LLM
-        if not hasattr(self.llm, "tokenizer"):
-            return 0
-
-        tokenizer = self.llm.tokenizer
-
-        # Get token IDs for object names
-        obj_token_ids = [tokenizer.encode(f" {obj}")[1] for obj in object_names]
-
-        # Use special method if available
-        if hasattr(self.llm, "generate_with_object_selection"):
-            return self.llm.generate_with_object_selection(prompt, obj_token_ids)
-
-        # Otherwise generate and parse
-        response = self.llm.generate(prompt=prompt, max_tokens=5)
-
-        # Try to match response text with object names
-        result_str = response.text.split("\n")[0].strip()
-        result_str = result_str[:-1] if result_str.endswith(".") else result_str
-
-        for obj_id, obj_name in enumerate(object_names):
-            if result_str in obj_name or obj_name in result_str:
-                return obj_id
-
-        # Default: use first token scores
-        return 0
 
     def select_multiple_rounds(
         self,
@@ -191,9 +151,12 @@ class ObjectSelector:
         selected = []
         remaining_objects = objects.copy()
 
-        for _ in range(n_rounds):
+        for round_num in range(n_rounds):
             if len(remaining_objects) == 0:
                 break
+
+            if self.debug:
+                print(f"[ObjectSelector] Round {round_num + 1}/{n_rounds}")
 
             # Select next object
             idx = self.select_object(question, remaining_objects, examples)

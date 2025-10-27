@@ -133,9 +133,9 @@ class BLIP2Captioner:
                 print(f"BLIP2 Output: {output}")
         else:
             # API-based inference
-            import utils_api
+            from vctp.utils import blip_completev2
 
-            output = utils_api.blip_completev2(
+            output = blip_completev2(
                 images=[image],
                 texts=[prompt],
                 blip_urls=self.blip2_api,

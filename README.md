@@ -45,3 +45,13 @@ arXiv version
   year={2023}
 }
 ```
+
+
+python -m src.vctp.data.preprocess.object_similarity.cli `
+    --dataset aokvqa `
+    --split train `
+    --sg_path "./data/processed/input_text/scene_graph_text" `
+    --annotations_dir "./data/raw/aokvqa_annotations" `
+    --output_path "./data/processed/object_similarity/train_object_select_aokvqa_answer.pkl" `
+    --metric answer `
+    --device cuda

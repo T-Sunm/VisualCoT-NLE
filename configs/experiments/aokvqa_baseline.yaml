@@ -4,13 +4,36 @@ experiment:
   split: val
   batch_size: 1
   num_workers: 0
-  output_dir: runs/aokvqa_baseline
+  output_dir: runs/aokvqa_visualcot
+
 see:
-  name: noop-see
+  name: visualcot-perception
+  iterative_strategy: caption  # or "sg" for scene graph
+  caption_type: vinvl  # vinvl, vinvl_tag, vinvl_ocr
+  use_blip2: false  # Set true if you have BLIP2 API
+  blip2_api_urls: null
+  use_clip: true
+  clip_model: openai/clip-vit-base-patch16
+  debug: false
+
 think:
-  name: noop-think
+  name: visualcot-reasoner
+  engine: gpt3  # or "chat" for ChatGPT
+  engine_name: text-davinci-003
+  api_key_file: api_keys.txt  # File with OpenAI API keys
+  chain_of_thoughts: true
+  choice_only: false
+  n_ensemble: 1
+  use_thought_verification: false
+  temperature: 0.0
+  max_tokens: 41
+  debug: false
+
 confirm:
-  name: noop-confirm
+  name: visual-consistency
+  method: clip  # clip, blip2, oracle, random
+  threshold: 0.0
+  debug: false
+
 datasets:
   aokvqa: configs/datasets/aokvqa.yaml
-
