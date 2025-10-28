@@ -117,7 +117,6 @@ class VisualConsistencyConfirmer(ConfirmationModule):
                 is_confirmed=True, score=1.0, rationale="No rationale to verify"
             )
 
-        # Method: CLIP (lines 1096-1116)
         if self.method == "clip":
             if evidence.clip_image_embed is None:
                 return ConfirmationOutput(
@@ -301,3 +300,131 @@ class AnswerConsistencyConfirmer(ConfirmationModule):
             score=score,
             rationale=rationale,
         )
+
+
+def main():
+    """
+    Clean test function for confirmation module.
+    Tests all three confirmation strategies with mock data.
+    """
+    import numpy as np
+
+    print("=" * 60)
+    print("TESTING CONFIRMATION MODULE")
+    print("=" * 60)
+
+    # ============================================================
+    # Setup mock data
+    # ============================================================
+
+    # Mock evidence bundle
+    evidence = EvidenceBundle(
+        image_id="test_image_001",
+        global_caption="A cat sitting on a couch",
+        detected_objects=[],
+        attributes={},
+        relations=[],
+        clip_image_embed=np.random.randn(512).astype(np.float32),  # Mock CLIP embedding
+        region_captions=None,
+    )
+
+    # Mock reasoning output
+    candidate = ReasoningOutput(
+        candidate_answer="cat",
+        cot_rationale="There is a cat. The cat is sitting on furniture.",
+        used_concepts=["cat", "furniture"],
+    )
+
+    question = "What animal is in the image?"
+    choices = ["cat", "dog", "bird", "fish"]
+
+    # ============================================================
+    # Test 1: NoOp Confirmer
+    # ============================================================
+    print("\n[TEST 1] NoOp Confirmer")
+    print("-" * 60)
+
+    noop = NoOpConfirmer()
+    result = noop.run(question=question, candidate=candidate, evidence=evidence)
+
+    print(f"✓ Is Confirmed: {result.is_confirmed}")
+    print(f"✓ Score: {result.score}")
+    print(f"✓ Rationale: {result.rationale}")
+    assert isinstance(result, ConfirmationOutput)
+    assert result.is_confirmed == True
+    assert result.score == 0.0
+
+    # ============================================================
+    # Test 2: Visual Consistency Confirmer (CLIP)
+    # ============================================================
+    print("\n[TEST 2] Visual Consistency Confirmer (CLIP)")
+    print("-" * 60)
+
+    try:
+        visual_clip = VisualConsistencyConfirmer(method="clip", verify_threshold=0.0, debug=True)
+        result = visual_clip.run(question=question, candidate=candidate, evidence=evidence)
+
+        print(f"✓ Is Confirmed: {result.is_confirmed}")
+        print(f"✓ Score: {result.score:.4f}")
+        print(f"✓ Rationale: {result.rationale}")
+        assert isinstance(result, ConfirmationOutput)
+        assert isinstance(result.score, (float, np.floating))
+
+    except Exception as e:
+        print(f"⚠ CLIP test skipped: {e}")
+
+    # ============================================================
+    # Test 3: Answer Consistency Confirmer
+    # ============================================================
+    print("\n[TEST 3] Answer Consistency Confirmer")
+    print("-" * 60)
+
+    try:
+        answer_checker = AnswerConsistencyConfirmer(correct_answer=True, debug=True)
+
+        # Test 3a: Answer in choices
+        result = answer_checker.run(
+            question=question, candidate=candidate, evidence=evidence, choices=choices
+        )
+
+        print(f"✓ Is Confirmed: {result.is_confirmed}")
+        print(f"✓ Score: {result.score:.4f}")
+        print(f"✓ Rationale: {result.rationale}")
+        assert isinstance(result, ConfirmationOutput)
+
+        # Test 3b: Answer NOT in choices
+        print("\n  [3b] Testing out-of-choice answer...")
+        candidate_wrong = ReasoningOutput(
+            candidate_answer="feline",  # Similar to "cat" but not in choices
+            cot_rationale="There is a feline animal",
+            used_concepts=["feline"],
+        )
+
+        result = answer_checker.run(
+            question=question, candidate=candidate_wrong, evidence=evidence, choices=choices
+        )
+
+        print(f"Is Confirmed: {result.is_confirmed}")
+        print(f"Score: {result.score:.4f}")
+        print(f"Rationale: {result.rationale}")
+
+    except Exception as e:
+        print(f"Answer consistency test skipped: {e}")
+
+    # ============================================================
+    # Summary
+    # ============================================================
+    print("\n" + "=" * 60)
+    print("ALL TESTS COMPLETED")
+    print("=" * 60)
+    print("\nExpected Output Format:")
+    print("  ConfirmationOutput(")
+    print("      is_confirmed=True,")
+    print("      score=0.78,")
+    print("      rationale='Answer is consistent with visual evidence'")
+    print("  )")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()

@@ -4,34 +4,41 @@ experiment:
   split: val
   batch_size: 1
   num_workers: 0
-  output_dir: runs/aokvqa_visualcot
+  output_dir: runs/aokvqa_groq
+
+# THÊM PHẦN NÀY
+pipeline:
+  mode: iterative 
+  max_rounds: 3
+  stop_on_convergence: true
+  attention_strategy: llm  
+  use_context_manager: true
+  debug: false
 
 see:
   name: visualcot-perception
-  iterative_strategy: caption  # or "sg" for scene graph
-  caption_type: vinvl  # vinvl, vinvl_tag, vinvl_ocr
-  use_blip2: false  # Set true if you have BLIP2 API
-  blip2_api_urls: null
+  iterative_strategy: caption
+  caption_type: vinvl
+  use_blip2: false
   use_clip: true
   clip_model: openai/clip-vit-base-patch16
   debug: false
 
 think:
   name: visualcot-reasoner
-  engine: gpt3  # or "chat" for ChatGPT
-  engine_name: text-davinci-003
-  api_key_file: api_keys.txt  # File with OpenAI API keys
+  engine: groq
+  engine_name: openai/gpt-oss-20b
   chain_of_thoughts: true
   choice_only: false
   n_ensemble: 1
   use_thought_verification: false
   temperature: 0.0
-  max_tokens: 41
+  max_tokens: 100
   debug: false
 
 confirm:
   name: visual-consistency
-  method: clip  # clip, blip2, oracle, random
+  method: clip
   threshold: 0.0
   debug: false
 

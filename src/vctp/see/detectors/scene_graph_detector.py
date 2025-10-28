@@ -313,3 +313,51 @@ def detect(image_path: str, **kwargs) -> List[Dict]:
     image_id = Path(image_path).stem
 
     return detector.load_scene_graph(image_id)
+
+
+# if __name__ == "__main__":
+#     import pprint
+
+#     # --- Cấu hình để test ---
+#     # Vui lòng thay đổi các đường dẫn này cho phù hợp với cấu trúc project của bạn.
+#     # Các đường dẫn này thường được định nghĩa trong file config (ví dụ: configs/datasets/aokvqa.yaml)
+#     SG_DIR = "data/processed/input_text/scene_graph_text/scene_graph_coco17"
+#     SG_ATTR_DIR = "data/processed/input_text/scene_graph_text/scene_graph_coco17_attr"
+#     SG_CAPTION_DIR = "data/processed/input_text/scene_graph_text/scene_graph_coco17_caption"
+
+#     # ID của ảnh bạn muốn test. Ví dụ: '000000000139' (cho ảnh 139.jpg)
+#     TEST_IMAGE_ID = "000000000000"
+#     # -------------------------
+
+#     print("--- Bắt đầu test SceneGraphDetector ---")
+
+#     # 1. Khởi tạo detector
+#     detector = SceneGraphDetector(
+#         sg_dir=SG_DIR,
+#         sg_attr_dir=SG_ATTR_DIR,
+#         sg_caption_dir=SG_CAPTION_DIR,
+#         # Các tham số khác có thể để mặc định cho lần test này
+#     )
+#     print(f"Khởi tạo detector với các đường dẫn:")
+#     print(f"  - sg_dir: {SG_DIR}")
+#     print(f"  - sg_attr_dir: {SG_ATTR_DIR}")
+#     print(f"  - sg_caption_dir: {SG_CAPTION_DIR}")
+
+#     # 2. Gọi hàm load_scene_graph
+#     print(f"\nĐang tải scene graph cho ảnh ID: {TEST_IMAGE_ID}...")
+#     detections = detector.load_scene_graph(
+#         image_id=TEST_IMAGE_ID,
+#         include_attributes=True,
+#         include_captions=True,
+#     )
+
+#     # 3. In kết quả
+#     if detections:
+#         print(f"\n>>> Tìm thấy {len(detections)} đối tượng. Kết quả:")
+#         # Sử dụng pprint để in cho đẹp
+#         pprint.pprint(detections)
+#     else:
+#         print("\n>>> Không tìm thấy đối tượng nào hoặc file không tồn tại.")
+#         print(">>> Vui lòng kiểm tra lại TEST_IMAGE_ID và các đường dẫn.")
+
+#     print("\n--- Test kết thúc ---")

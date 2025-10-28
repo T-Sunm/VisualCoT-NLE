@@ -91,9 +91,8 @@ class InteractiveLoop:
         Returns:
             Result dict with answer, rationale, and metadata
         """
-        if self.debug:
-            print(f"\n[InteractiveLoop] Processing: {query_key}")
-            print(f"[InteractiveLoop] Question: {question}")
+        print(f"\n[InteractiveLoop] Processing: {query_key}")
+        print(f"[InteractiveLoop] Question: {question}")
 
         # Get few-shot examples for QA
         qa_examples = self._get_qa_examples(query_key)
@@ -154,9 +153,8 @@ class InteractiveLoop:
             "selected_objects": [r.get("selected_objects", []) for r in round_results],
         }
 
-        if self.debug:
-            print(f"[InteractiveLoop] Final Answer: {output['answer']}")
-            print(f"[InteractiveLoop] Accuracy: {accuracy}")
+        print(f"[InteractiveLoop] Final Answer: {output['answer']}")
+        print(f"[InteractiveLoop] Accuracy: {accuracy}")
 
         return output
 
@@ -204,7 +202,7 @@ class InteractiveLoop:
                 context += "\n" + " ".join(filtered_thoughts)
 
         # Answer question
-        answer, rationale, confidence = self.question_answerer.answer(
+        answer, rationale, confidence = self.question_answerer._answer_single(
             question=question,
             context=context,
             scene_graph_text=scene_graph_text,

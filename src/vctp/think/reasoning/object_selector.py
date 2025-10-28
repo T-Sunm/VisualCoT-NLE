@@ -19,7 +19,7 @@ class ObjectSelector:
 
     def __init__(
         self,
-        model: str = "llama-3.3-70b-versatile",
+        model: str,
         use_attributes: bool = False,
         use_captions: bool = False,
         debug: bool = False,
@@ -28,7 +28,7 @@ class ObjectSelector:
         Initialize object selector with GroqCloud.
 
         Args:
-            model: Groq model name (e.g., "llama-3.3-70b-versatile", "moonshotai/kimi-k2-instruct-0905")
+            model: Groq model name
             use_attributes: Include object attributes in selection
             use_captions: Include object captions in selection
             debug: Enable debug mode
@@ -69,25 +69,18 @@ class ObjectSelector:
         # Format object list for prompt
         object_names = [obj[1] for obj in objects]
 
-        # Build prompt - this returns the user message content
-        user_prompt = self.prompt_builder.build(
+        # Build prompt using builder - returns (system_msg, user_msg)
+        system_msg, user_msg = self.prompt_builder.build_structured(
             question=question, object_list=object_names, examples=examples
         )
-
-        if self.debug:
-            print(f"[ObjectSelector] Object choices: {object_names}")
-            print(f"[ObjectSelector] User Prompt:\n{user_prompt}")
 
         try:
             # Call Groq with structured output
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an expert at analyzing visual scenes and selecting the most relevant object for answering questions. Choose the single most important object from the provided list that would help answer the question.",
-                    },
-                    {"role": "user", "content": user_prompt},
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": user_msg},
                 ],
                 response_format={
                     "type": "json_schema",

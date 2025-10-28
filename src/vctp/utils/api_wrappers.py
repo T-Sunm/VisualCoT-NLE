@@ -18,7 +18,6 @@ import requests
 from PIL import Image
 
 import openai
-from openai import error as openai_error
 
 
 def openai_complete(
@@ -259,16 +258,6 @@ def call_openai_internal(
         except openai.error.APIError as e:
             print(e)
             print(f"Batch size: {len(prompts)}, best_of: {best_of}, max_tokens: {max_length}")
-            print("API-Key:", api_key, "Organization:", organization)
-            time.sleep(accumulated_sleep_time)
-            accumulated_sleep_time += sleep_time
-        except openai_error.Timeout as e:
-            print(e)
-            print("API-Key:", api_key, "Organization:", organization)
-            time.sleep(accumulated_sleep_time)
-            accumulated_sleep_time += sleep_time
-        except openai_error.APIConnectionError as e:
-            print(e)
             print("API-Key:", api_key, "Organization:", organization)
             time.sleep(accumulated_sleep_time)
             accumulated_sleep_time += sleep_time

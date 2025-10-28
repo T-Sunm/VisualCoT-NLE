@@ -252,7 +252,7 @@ class BLIP2Captioner:
                 try:
                     self.sleep()
                     response = openai.ChatCompletion.create(
-                        model="gpt-3.5-turbo",
+                        model=self.llm_engine_name,
                         messages=self.current_conversation,
                         max_tokens=40,
                         temperature=0.0,

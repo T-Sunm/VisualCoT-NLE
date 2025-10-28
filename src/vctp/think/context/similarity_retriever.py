@@ -14,7 +14,7 @@ class SimilarityRetriever:
         self,
         similarity_path: str,
         dataset_name: str = "aokvqa",
-        split: str = "val",
+        split: str = "train",
     ):
         """
         Initialize similarity retriever.

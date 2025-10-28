@@ -55,3 +55,6 @@ python -m src.vctp.data.preprocess.object_similarity.cli `
     --output_path "./data/processed/object_similarity/train_object_select_aokvqa_answer.pkl" `
     --metric answer `
     --device cuda
+
+
+python src/cli/run_aokvqa_pipeline.py --config configs/experiments/aokvqa_baseline.yaml --limit 1

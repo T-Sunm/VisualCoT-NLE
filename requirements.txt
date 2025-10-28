@@ -22,6 +22,7 @@ pyyaml==6.0.3
 
 # Utilities
 tqdm==4.67.1
+python-dotenv==1.2.1
 
 # Optional - chỉ cần nếu dùng trong code
 openai==1.57.4

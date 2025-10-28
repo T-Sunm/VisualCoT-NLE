@@ -28,6 +28,8 @@ class ReasoningOutput:
     candidate_answer: str
     cot_rationale: str
     used_concepts: List[str]
+    confidence: Optional[float] = None  # ← Thêm dòng này
+    metadata: Optional[Dict[str, Any]] = None  # ← Thêm dòng này
 
 
 @dataclass

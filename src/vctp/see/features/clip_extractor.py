@@ -4,11 +4,19 @@ Extracted and refactored from main_aokvqa.py
 Provides image and text feature extraction using CLIP
 """
 
+import sys
+from pathlib import Path
+
+src_path = str(Path(__file__).resolve().parents[3])
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
 import torch
 import numpy as np
 from typing import Union, List, Optional, Tuple
 from PIL import Image
-from pathlib import Path
+
+
+from vctp.utils.clip_manager import get_clip_model
 
 
 class CLIPFeatureExtractor:
@@ -31,23 +39,16 @@ class CLIPFeatureExtractor:
             device: Device to run on (cuda/cpu)
             use_text_model_only: If True, only load text model (lighter)
         """
-        from transformers import CLIPProcessor, CLIPModel, CLIPTextModel
 
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.model_name = model_name
         self.use_text_model_only = use_text_model_only
 
-        # Load processor
-        self.processor = CLIPProcessor.from_pretrained(model_name)
-
-        # Load model
-        if use_text_model_only:
-            self.model = CLIPTextModel.from_pretrained(model_name)
-        else:
-            self.model = CLIPModel.from_pretrained(model_name)
-
-        self.model = self.model.to(self.device)
-        self.model.eval()
+        # Load model via manager
+        model_type = "text" if use_text_model_only else "full"
+        self.model, self.processor = get_clip_model(
+            model_name=model_name, model_type=model_type, device=self.device, use_safetensors=True
+        )
 
         print(f"CLIP model loaded: {model_name} on {self.device}")
 
@@ -404,7 +405,10 @@ def extract_clip_image_embedding(
         Image embedding as numpy array
     """
     extractor = CLIPFeatureExtractor(model_name=model_name, **kwargs)
-    return extractor.extract_image_features(image_path, normalize=normalize, return_numpy=True)
+    features = extractor.extract_image_features(image_path, normalize=normalize, return_numpy=True)
+    if features.shape[0] == 1:
+        features = features[0]
+    return features
 
 
 def extract_clip_text_embedding(
@@ -426,4 +430,22 @@ def extract_clip_text_embedding(
         Text embedding as numpy array
     """
     extractor = CLIPFeatureExtractor(model_name=model_name, **kwargs)
-    return extractor.extract_text_features(text, normalize=normalize, return_numpy=True)
+    features = extractor.extract_text_features(text, normalize=normalize, return_numpy=True)
+    if features.shape[0] == 1:
+        features = features[0]
+    return features
+
+
+if __name__ == "__main__":
+    # Test với một ảnh mẫu
+    image_path = "data/raw/aokvqa_images/000000000000.jpg"
+    print(f"Testing CLIP extraction on: {image_path}")
+
+    features = extract_clip_image_embedding(
+        image_path=image_path, model_name="openai/clip-vit-base-patch16", normalize=True
+    )
+
+    print(f"\n=== FINAL RESULT ===")
+    print(f"Feature shape: {features.shape}")
+    print(f"Expected: (512,) for ViT-B/16")
+    print(f"Feature range: [{features.min():.4f}, {features.max():.4f}]")

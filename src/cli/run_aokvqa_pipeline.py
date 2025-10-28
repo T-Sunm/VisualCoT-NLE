@@ -1,12 +1,3 @@
-"""
-Full Pipeline for AOKVQA using Refactored VCTP Framework
-Based on VisualCoT/main_aokvqa.py but using the new modular architecture
-
-Usage:
-    python run_aokvqa_pipeline.py --config configs/experiments/aokvqa_baseline.yaml
-    python run_aokvqa_pipeline.py --config configs/experiments/aokvqa_full.yaml
-"""
-
 import argparse
 import json
 import os
@@ -14,11 +5,16 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import yaml
+from dotenv import load_dotenv
+import numpy as np
+import pickle
 
+load_dotenv()
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from vctp.core.pipeline import VCTPPipeline
+from vctp.core.iterative_pipeline import IterativeVCTPPipeline
 from vctp.see.perception import VisualCoTPerception, NoOpPerception, CLIPOnlyPerception
 from vctp.think.reasoner import VisualCoTReasoner, NoOpReasoner
 from vctp.confirm.confirmer import (
@@ -50,17 +46,19 @@ class AOKVQAPipeline:
         self.confirm_module = self._build_confirm_module()
 
         # Create pipeline
-        self.pipeline = VCTPPipeline(
-            see=self.see_module, think=self.think_module, confirm=self.confirm_module
-        )
+        pipeline_mode = self.config.get("pipeline", {}).get("mode", "simple")
+
+        if pipeline_mode == "iterative":
+            # Iterative pipeline with multi-round reasoning
+            self.pipeline = self._build_iterative_pipeline()
+        else:
+            # Simple single-pass pipeline
+            self.pipeline = VCTPPipeline(
+                see=self.see_module, think=self.think_module, confirm=self.confirm_module
+            )
 
         # Load dataset
         self.dataset = self._build_dataset()
-
-        print(f"Pipeline initialized with:")
-        print(f"  SEE: {self.config['see']['name']}")
-        print(f"  THINK: {self.config['think']['name']}")
-        print(f"  CONFIRM: {self.config['confirm']['name']}")
 
     def _load_config(self, config_path: str) -> Dict:
         """Load configuration from YAML file."""
@@ -180,20 +178,49 @@ class AOKVQAPipeline:
             debug=think_config.get("debug", False),
         )
 
-    def _create_examples_manager(self, think_config: Dict):
-        """Create few-shot examples manager."""
-        # This would load from preprocessed data
-        # For now, create empty manager
-        from vctp.think.prompts import FewShotExamplesManager
+    def _create_examples_manager(self, think_config: Dict) -> Optional[FewShotExamplesManager]:
+        """Create examples manager for few-shot prompting."""
+        # Few-shot examples are optional
+        if not think_config.get("use_few_shot", True):
+            return None
 
-        examples_file = think_config.get("examples_file")
-        if examples_file and os.path.exists(examples_file):
-            with open(examples_file, "r") as f:
-                examples_data = json.load(f)
-        else:
-            examples_data = {}
+        dataset_cfg = self.config.get("dataset", {})
 
-        return FewShotExamplesManager(examples_data)
+        # Get training annotations path (using _file convention)
+        train_ann_file = dataset_cfg.get("train_annotations_file")
+        if not train_ann_file or not os.path.exists(train_ann_file):
+            print(f"Warning: Missing training annotations file: {train_ann_file}")
+            print("Few-shot example selection will be disabled.")
+            return None
+
+        # Load training annotations
+        print("Loading data for few-shot examples...")
+        from vctp.data.loader import load_aokvqa_annotations, build_aokvqa_dicts
+
+        train_annotations = load_aokvqa_annotations(train_ann_file)
+
+        # Build dictionaries
+        train_answers, train_questions, train_rationales, train_choices = build_aokvqa_dicts(
+            train_annotations, choice_only=dataset_cfg.get("choice_only", False)
+        )
+
+        # Load captions if available
+        train_captions = None
+        train_caption_file = dataset_cfg.get("train_caption_file")
+        if train_caption_file and os.path.exists(train_caption_file):
+            from vctp.data.loader import load_coco_captions
+
+            train_captions = load_coco_captions(train_caption_file)
+
+        print("Few-shot data loaded successfully.")
+
+        return FewShotExamplesManager(
+            train_questions=train_questions,
+            train_answers=train_answers,
+            train_rationales=train_rationales,
+            train_choices=train_choices,
+            train_captions=train_captions,
+        )
 
     def _build_confirm_module(self):
         """Build CONFIRM (verification) module from config."""
@@ -299,6 +326,78 @@ class AOKVQAPipeline:
         print(f"  Confirmed: {confirmed} ({confirmed/total*100:.1f}%)")
         print(f"  Average score: {avg_score:.3f}")
         print(f"{'='*70}")
+
+    def _build_iterative_pipeline(self):
+        """Build iterative pipeline - uses pre-computed CLIP features."""
+        pipeline_config = self.config.get("pipeline", {})
+        dataset_cfg = self.config.get("dataset", {})
+        think_config = self.config.get("think", {})
+        # Build context manager for object selection
+        context_manager = None
+        if pipeline_config.get("use_context_manager", True):  # Enable by default
+            from vctp.think.context import InteractiveContextManager
+
+            # Load training data for context manager
+            train_ann_file = dataset_cfg.get("train_annotations_file")
+            if not train_ann_file or not os.path.exists(train_ann_file):
+                print(f"⚠ Warning: Missing training annotations: {train_ann_file}")
+                print("  → Will use random few-shot examples instead")
+                context_manager = None
+            else:
+                from vctp.data.loader import load_aokvqa_annotations, build_aokvqa_dicts
+
+                # Load training annotations
+                print("Loading training data for context manager...")
+                train_annotations = load_aokvqa_annotations(train_ann_file)
+                train_answers, train_questions, train_rationales, train_choices = (
+                    build_aokvqa_dicts(
+                        train_annotations, choice_only=dataset_cfg.get("choice_only", False)
+                    )
+                )
+
+                # Paths
+                clip_dir = dataset_cfg.get("clip_features_dir", "data/processed/coco_clip_new")
+                sg_dir = dataset_cfg.get("scene_graph_dir")
+                sg_attr_dir = dataset_cfg.get("scene_graph_attr_dir")
+                split = self.config["experiment"].get("split", "val")
+
+                try:
+                    context_manager = InteractiveContextManager(
+                        # CLIP features directory (not individual files)
+                        similarity_path=clip_dir,
+                        # Scene graph directories
+                        sg_dir=sg_dir,
+                        sg_attr_dir=sg_attr_dir,
+                        # Training data dictionaries
+                        train_questions=train_questions,
+                        train_answers=train_answers,
+                        train_rationales=train_rationales,
+                        dataset_name="aokvqa",
+                        split=split,
+                        use_object_similarity=pipeline_config.get("use_object_similarity", True),
+                    )
+
+                    # Load the CLIP features
+                    similarity_metric = pipeline_config.get("similarity_metric", "imagequestion")
+                    context_manager.load_features(metric=similarity_metric)
+
+                    print("✓ Context manager loaded with pre-computed CLIP features")
+                except FileNotFoundError as e:
+                    print(f"⚠ Warning: Could not load context manager: {e}")
+                    print("  → Will use random few-shot examples instead")
+                    context_manager = None
+
+        return IterativeVCTPPipeline(
+            see=self.see_module,
+            think=self.think_module,
+            confirm=self.confirm_module,
+            max_rounds=pipeline_config.get("max_rounds", 3),
+            stop_on_convergence=pipeline_config.get("stop_on_convergence", True),
+            context_manager=context_manager,
+            examples_manager=None,
+            llm_engine_name=think_config.get("engine_name", "llama-3.1-8b-instant"),
+            debug=pipeline_config.get("debug", False),
+        )
 
 
 def main():

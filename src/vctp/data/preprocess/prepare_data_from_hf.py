@@ -3,6 +3,7 @@ from datasets import load_dataset
 import os
 import json
 from pathlib import Path
+import ast
 
 # --- Cấu hình ---
 RAW_DATA_DIR = Path("data/raw")
@@ -41,7 +42,7 @@ for idx, item in enumerate(dataset_slice):
             "question": item["question"],
             "choices": item["choices"],
             "correct_choice_idx": item["correct_choice_idx"],
-            "direct_answers": item["direct_answers"],
+            "direct_answers": ast.literal_eval(item["direct_answers"]),
             "rationales": item["rationales"],
         }
     )

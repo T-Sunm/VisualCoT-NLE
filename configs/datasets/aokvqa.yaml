@@ -1,10 +1,27 @@
 dataset:
   name: aokvqa
-  split: val
-  images_root: data/raw/val2017
-  annotations_file: coco_annotations/aokvqa_v1p0_val.json
-  captions_file: input_text/vinvl_caption/VinVL_base_val2014.tsv
-  scene_graph_dir: input_text/scene_graph_text/scene_graph_coco17
-  scene_graph_attr_dir: input_text/scene_graph_text/scene_graph_coco17_attr
-  concept_caption_dir: input_text/scene_graph_text/scene_graph_coco17_caption
-
+  
+  # Val/test data
+  annotations_file: data/raw/aokvqa_annotations/aokvqa_v1p0_train_from_hf.json
+  images_root: data/raw/aokvqa_images
+  
+  # Training data for few-shot context
+  train_annotations_file: data/raw/aokvqa_annotations/aokvqa_v1p0_train_from_hf.json
+  train_caption_file: data/processed/captions_train2017.json
+  
+  # VinVL captions (optional, if you have them)
+  valcaption_file: data/processed/vinvl_caption_val.tsv  # Update this path
+  
+  # Scene graphs
+  scene_graph_dir: data/processed/input_text/scene_graph_text/scene_graph_coco17
+  scene_graph_attr_dir: data/processed/input_text/scene_graph_text/scene_graph_coco17_attr
+  concept_caption_dir: data/processed/input_text/scene_graph_text/scene_graph_coco17_caption
+  
+  # CLIP features for few-shot example selection
+  train_line2sample_idx_file: data/processed/coco_clip_new/aokvqa_qa_line2sample_idx_train2017.json
+  train_question_features_file: data/processed/coco_clip_new/coco_clip_vitb16_train2017_aokvqa_question.npy
+  train_image_features_file: data/processed/coco_clip_new/coco_clip_vitb16_train2017_aokvqa_convertedidx_image.npy
+  train_answers_file: data/processed/object_similarity/train_object_select_aokvqa_answer.pkl
+  
+  # Options
+  choice_only: false

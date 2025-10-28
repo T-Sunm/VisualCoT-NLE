@@ -7,6 +7,7 @@ from .types import LLMConfig
 from .openai_adapter import OpenAIGPT3Adapter, OpenAIChatAdapter
 from .opt_adapter import OPTAdapter
 from .llama_adapter import LLaMAAdapter
+from .groq_adapter import GroqAdapter
 
 
 def create_llm_adapter(
@@ -40,18 +41,6 @@ def create_llm_adapter(
     Raises:
         ValueError: If engine type is not supported
     """
-    # Default engine names
-    if engine_name is None:
-        engine_name_map = {
-            "gpt3": "text-davinci-001",
-            "davinci": "text-davinci-003",
-            "chat": "gpt-3.5-turbo",
-            "codex": "code-davinci-002",
-            "instruct": "davinci-instruct-beta",
-            "opt": "facebook/opt-1.3b",
-            "llama": None,  # Requires model_path
-        }
-        engine_name = engine_name_map.get(engine, engine)
 
     config = LLMConfig(
         engine=engine,
@@ -77,6 +66,9 @@ def create_llm_adapter(
 
     elif engine == "llama":
         return LLaMAAdapter(config)
+
+    elif engine == "groq":
+        return GroqAdapter(config)
 
     else:
         raise ValueError(f"Unsupported engine type: {engine}")

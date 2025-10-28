@@ -1,6 +1,6 @@
 """Question answerer with chain-of-thought reasoning."""
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 
 from ..llm import BaseLLMAdapter
 from ..prompts import (
@@ -9,6 +9,7 @@ from ..prompts import (
     extract_logprobs_until_stop,
     process_answer,
 )
+from ..prompts import templates
 
 
 class QuestionAnswerer:
@@ -54,34 +55,28 @@ class QuestionAnswerer:
 
     def answer(
         self,
-        question: str,
-        context: str,
-        scene_graph_text: str,
-        choices: Optional[List[str]] = None,
-        examples: Optional[List[Dict]] = None,
-        thoughts: Optional[List[str]] = None,
-    ) -> Tuple[str, Optional[str], float]:
-        """
-        Answer a question with reasoning.
+        sample: Dict[str, Any],
+        visual_context: List[str],
+        thoughts: List[str] = None,
+    ) -> Dict[str, Any]:
+        """Generate a final answer."""
+        question = sample["question"]
+        key = sample.get("key")
+        choices = sample.get("choices")
+        train_context = sample.get("train_context", {})
 
-        Args:
-            question: Question to answer
-            context: Global image context/caption
-            scene_graph_text: Scene graph description
-            choices: Multiple choice options
-            examples: Few-shot examples
-            thoughts: Previous thoughts for iterative reasoning
+        pred_answer_list, pred_prob_list, thought_list = [], [], []
 
-        Returns:
-            Tuple of (answer, rationale, confidence_score)
-        """
-        pred_answers = []
-        pred_rationales = []
-        pred_logprobs = []
-
-        # Ensemble multiple runs
         for _ in range(self.n_ensemble):
-            answer, rationale, logprob = self._answer_single(
+            # Split visual_context into context and scene_graph_text
+            context = visual_context[0] if len(visual_context) > 0 else ""
+            scene_graph_text = visual_context[1] if len(visual_context) > 1 else ""
+
+            # Get examples from train_context
+            examples = train_context.get("examples", [])
+
+            # Build prompt using correct method name 'build'
+            prompt = self.prompt_builder.build(
                 question=question,
                 context=context,
                 scene_graph_text=scene_graph_text,
@@ -90,14 +85,40 @@ class QuestionAnswerer:
                 thoughts=thoughts,
             )
 
-            pred_answers.append(answer)
-            pred_rationales.append(rationale)
-            pred_logprobs.append(logprob)
+            print(f"[QuestionAnswerer] Prompt:\n{prompt}")
 
-        # Select best answer by logprob
-        best_idx = pred_logprobs.index(max(pred_logprobs))
+            # Generate response
+            response = self.llm.generate(prompt)
 
-        return pred_answers[best_idx], pred_rationales[best_idx], pred_logprobs[best_idx]
+            # Extract text from response
+            response_text = response.text if hasattr(response, "text") else str(response)
+
+            # Parse response
+            answer, rationale, confidence = extract_answer_and_rationale(
+                response_text, chain_of_thoughts=True
+            )
+
+            pred_answer_list.append(answer if answer else "")
+            pred_prob_list.append(confidence)
+            thought_list.append(rationale if rationale else "")
+
+        if not pred_prob_list:
+            return {
+                "answer": "Error: No answer generated",
+                "rationale": "",
+                "prompt": prompt,
+            }
+
+        best_idx = pred_prob_list.index(max(pred_prob_list))
+        final_answer = pred_answer_list[best_idx]
+        final_thought = thought_list[best_idx]
+
+        return {
+            "answer": final_answer,
+            "rationale": final_thought,
+            "prompt": prompt,
+            "raw_response": response_text,
+        }
 
     def _answer_single(
         self,
@@ -118,14 +139,11 @@ class QuestionAnswerer:
             examples=examples,
             thoughts=thoughts,
         )
-
-        if self.debug:
-            print(f"[QuestionAnswerer] Prompt:\n{prompt}")
-
+        print(f"[QuestionAnswerer] Prompt:\n{prompt}")
         # Generate based on engine type
         if self.engine in ["ada", "babbage", "curie", "davinci", "codex", "instruct", "gpt3"]:
             return self._answer_with_gpt3(prompt)
-        elif self.engine == "chat":
+        elif self.engine in ["chat", "groq"]:
             return self._answer_with_chat(prompt)
         elif self.engine in ["opt", "llama", "bloom"]:
             return self._answer_with_local_model(prompt)
@@ -147,7 +165,9 @@ class QuestionAnswerer:
 
         if self.chain_of_thoughts:
             # Extract answer and rationale
-            answer, rationale = extract_answer_and_rationale(text, chain_of_thoughts=True)
+            answer, rationale, confidence = extract_answer_and_rationale(
+                text, chain_of_thoughts=True
+            )
 
             # Extract logprobs until first period
             if tokens and logprobs:
@@ -172,8 +192,8 @@ class QuestionAnswerer:
 
     def _answer_with_chat(self, prompt: str) -> Tuple[str, Optional[str], float]:
         """Answer using ChatGPT API."""
-        # Get system prompt
-        system_prompt = self.prompt_builder.QA_SYSTEM_PROMPT_CHAT if self.engine == "chat" else None
+        # Get system prompt - FIX: use templates module, support groq
+        system_prompt = templates.QA_SYSTEM_PROMPT_CHAT if self.engine in ["chat", "groq"] else None
 
         # Generate
         response = self.llm.generate(prompt=prompt, max_tokens=40, system_prompt=system_prompt)
@@ -181,11 +201,13 @@ class QuestionAnswerer:
         text = response.text
 
         if self.chain_of_thoughts:
-            answer, rationale = extract_answer_and_rationale(text, chain_of_thoughts=True)
-            return answer, rationale, 0.0  # Chat API doesn't return logprobs
+            answer, rationale, confidence = extract_answer_and_rationale(
+                text, chain_of_thoughts=True
+            )
+            return answer, rationale, confidence
         else:
             answer = process_answer(text)
-            return answer, None, 0.0
+            return answer, None, confidence
 
     def _answer_with_local_model(self, prompt: str) -> Tuple[str, Optional[str], float]:
         """Answer using local models (OPT, LLaMA)."""
@@ -199,7 +221,9 @@ class QuestionAnswerer:
             if "The answer is" in text:
                 text = text.split("The answer is")[-1]
 
-            answer, rationale = extract_answer_and_rationale(text, chain_of_thoughts=True)
+            answer, rationale, confidence = extract_answer_and_rationale(
+                text, chain_of_thoughts=True
+            )
 
             # Extract logprobs
             if response.logprobs:
@@ -207,7 +231,7 @@ class QuestionAnswerer:
             else:
                 total_logprob = 0.0
 
-            return answer, rationale, total_logprob
+            return answer, rationale, confidence
         else:
             answer = process_answer(text)
 
@@ -243,70 +267,180 @@ class EnsembleQuestionAnswerer(QuestionAnswerer):
         super().__init__(llm, **kwargs)
         self.ensemble_strategy = ensemble_strategy
 
-    def answer(
-        self,
-        question: str,
-        context: str,
-        scene_graph_text: str,
-        choices: Optional[List[str]] = None,
-        examples: Optional[List[Dict]] = None,
-        thoughts: Optional[List[str]] = None,
-    ) -> Tuple[str, Optional[str], float]:
-        """Answer with ensemble strategy."""
-        # Get all predictions
-        pred_answers = []
-        pred_rationales = []
-        pred_logprobs = []
 
-        for _ in range(self.n_ensemble):
-            answer, rationale, logprob = self._answer_single(
-                question=question,
-                context=context,
-                scene_graph_text=scene_graph_text,
-                choices=choices,
-                examples=examples,
-                thoughts=thoughts,
-            )
+def answer(
+    self,
+    sample: Dict[str, Any],
+    visual_context: List[str],
+    thoughts: List[str] = None,
+) -> Dict[str, Any]:
+    """Generate a final answer."""
+    question = sample["question"]
+    key = sample.get("key")
+    choices = sample.get("choices")
+    train_context = sample.get("train_context", {})
 
-            pred_answers.append(answer)
-            pred_rationales.append(rationale)
-            pred_logprobs.append(logprob)
+    pred_answer_list, pred_prob_list, thought_list = [], [], []
 
-        # Apply ensemble strategy
-        if self.ensemble_strategy == "max_logprob":
-            best_idx = pred_logprobs.index(max(pred_logprobs))
-            return pred_answers[best_idx], pred_rationales[best_idx], pred_logprobs[best_idx]
+    for _ in range(self.n_ensemble):
+        # Split visual_context into context and scene_graph
+        context = visual_context[0] if len(visual_context) > 0 else ""
+        scene_graph_text = visual_context[1] if len(visual_context) > 1 else ""
 
-        elif self.ensemble_strategy == "majority_vote":
-            # Count occurrences
-            answer_counts = {}
-            for ans in pred_answers:
-                answer_counts[ans] = answer_counts.get(ans, 0) + 1
+        # Get examples from train_context
+        examples = train_context.get("examples", [])
 
-            # Get most common
-            best_answer = max(answer_counts.items(), key=lambda x: x[1])[0]
+        # Build prompt using correct method name and parameters
+        prompt = self.prompt_builder.build(
+            question=question,
+            context=context,
+            scene_graph_text=scene_graph_text,
+            choices=choices,
+            examples=examples,
+            thoughts=thoughts,
+        )
 
-            # Find first occurrence for rationale
-            best_idx = pred_answers.index(best_answer)
-            return best_answer, pred_rationales[best_idx], pred_logprobs[best_idx]
+        # Generate response from LLM
+        response = self.llm.generate(prompt)
 
-        elif self.ensemble_strategy == "weighted_vote":
-            # Weight answers by logprobs
-            answer_weights = {}
-            answer_rationales = {}
+        # Extract text from LLMResponse
+        response_text = response.text if hasattr(response, "text") else str(response)
 
-            for ans, rat, logprob in zip(pred_answers, pred_rationales, pred_logprobs):
-                if ans not in answer_weights:
-                    answer_weights[ans] = 0.0
-                    answer_rationales[ans] = rat
-                answer_weights[ans] += logprob
+        # Parse response using formatters
+        answer, rationale, confidence = extract_answer_and_rationale(
+            response_text, chain_of_thoughts=self.chain_of_thoughts
+        )
 
-            # Get best weighted answer
-            best_answer = max(answer_weights.items(), key=lambda x: x[1])[0]
+        # Build parsed response dict
+        parsed_response = {
+            "answer": answer if answer else "",
+            "thought": rationale if rationale else "",
+            "probability": getattr(response, "total_logprob", 0.0),
+        }
 
-            return best_answer, answer_rationales[best_answer], answer_weights[best_answer]
+        pred_answer = parsed_response.get("answer", "")
+        thought = parsed_response.get("thought", "")
+        prob = parsed_response.get("probability", 0.0)
 
-        else:
-            # Default: max logprob
-            best_idx = pred_logprobs.index(max(pred_logprobs))
-            return pred_answers[best_idx], pred_rationales[best_idx], pred_logprobs[best_idx]
+        pred_answer_list.append(pred_answer)
+        pred_prob_list.append(prob)
+        thought_list.append(thought)
+
+    if not pred_prob_list:
+        return {
+            "answer": "Error: No answer generated",
+            "rationale": "",
+            "prompt": prompt,
+        }
+
+    best_idx = pred_prob_list.index(max(pred_prob_list))
+    final_answer = pred_answer_list[best_idx]
+    final_thought = thought_list[best_idx]
+
+    return {
+        "answer": final_answer,
+        "rationale": final_thought,
+        "prompt": prompt,
+    }
+
+
+# if __name__ == "__main__":
+#     """Test question answerer with Groq LLM."""
+#     import os
+#     from pathlib import Path
+
+#     # Load .env file
+#     try:
+#         from dotenv import load_dotenv
+
+#         # Find .env file in project root
+#         project_root = Path(__file__).parent.parent.parent.parent.parent
+#         env_path = project_root / ".env"
+#         if env_path.exists():
+#             load_dotenv(env_path)
+#             print(f"✓ Loaded environment from: {env_path}")
+#         else:
+#             print(f"⚠ No .env file found at: {env_path}")
+#             print(f"  Create one from example.env and add your GROQ_API_KEY")
+#     except ImportError:
+#         print("⚠ python-dotenv not installed. Install with: pip install python-dotenv")
+
+#     from ..llm import create_llm_adapter
+
+#     print("=" * 80)
+#     print("TESTING QUESTION ANSWERER WITH GROQ")
+#     print("=" * 80)
+
+#     # Check for API key
+#     groq_key = os.getenv("GROQ_API_KEY")
+#     print(f"✓ API key found: {groq_key[:20]}...")
+
+#     # Create Groq LLM adapter
+#     llm = create_llm_adapter(
+#         engine="groq",
+#         engine_name="openai/gpt-oss-20b",
+#         temperature=0.0,
+#         max_tokens=100,
+#         debug=True,
+#     )
+
+#     # Initialize question answerer
+#     answerer = QuestionAnswerer(
+#         llm=llm, engine="groq", chain_of_thoughts=True, choice_only=False, n_ensemble=1, debug=True
+#     )
+
+#     # Prepare test data
+#     sample = {
+#         "question": "What is the man doing?",
+#         "choices": ["tennis", "soccer", "basketball"],
+#         "key": "57<->123",
+#         "train_context": {
+#             "examples": [
+#                 {
+#                     "question": "What sport is this?",
+#                     "answer": "tennis",
+#                     "context": "A player on court with racket",
+#                     "rationale": "The racket indicates tennis",
+#                 }
+#             ]
+#         },
+#     }
+
+#     visual_context = [
+#         "A man playing tennis on clay court",  # global caption
+#         "man is standing. racket is green. court is red.",  # scene graph
+#     ]
+
+#     thoughts = ["The man holds a racket"]
+
+#     print("\n--- Input ---")
+#     print(f"Question: {sample['question']}")
+#     print(f"Choices: {sample['choices']}")
+#     print(f"Visual Context: {visual_context}")
+#     print(f"Thoughts: {thoughts}")
+
+#     # Call answerer
+#     print("\n--- Generating Answer ---")
+#     result = answerer.answer(sample, visual_context, thoughts)
+
+#     print("\n--- Output ---")
+#     print(f"Raw Response: {result['raw_response']}")
+#     print(f"Answer: {result['answer']}")
+#     print(f"Rationale: {result['rationale']}")
+#     print(f"\n--- Prompt Preview ---")
+#     print(result["prompt"][:500] + "..." if len(result["prompt"]) > 500 else result["prompt"])
+
+#     # Validation
+#     print("\n" + "=" * 80)
+#     print("VALIDATION")
+#     print("=" * 80)
+#     assert "answer" in result, "❌ Result should have 'answer' key"
+#     assert "rationale" in result, "❌ Result should have 'rationale' key"
+#     assert "prompt" in result, "❌ Result should have 'prompt' key"
+#     assert result["answer"], f"❌ Answer should not be empty"
+
+#     print("✓ All validations passed!")
+#     print(f"✓ Answer generated: '{result['answer']}'")
+#     print("\n" + "=" * 80)
+#     print("TEST COMPLETE - QUESTION ANSWERER WITH GROQ WORKS!")
+#     print("=" * 80)

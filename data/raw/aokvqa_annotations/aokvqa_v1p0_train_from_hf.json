@@ -10,7 +10,18 @@
             "cab"
         ],
         "correct_choice_idx": 3,
-        "direct_answers": "['ride', 'ride', 'bus', 'taxi', 'travelling', 'traffic', 'taxi', 'cab', 'cab', 'his ride']",
+        "direct_answers": [
+            "ride",
+            "ride",
+            "bus",
+            "taxi",
+            "travelling",
+            "traffic",
+            "taxi",
+            "cab",
+            "cab",
+            "his ride"
+        ],
         "rationales": [
             "A train would not be on the street, he would not have luggage waiting for a delivery, and the skateboarder is there and not paying attention to him so a cab is the only possible answer.",
             "He has bags as if he is going someone, and he is on a road waiting for vehicle that can only be moved on the road and is big enough to hold the bags.",
@@ -28,7 +39,18 @@
             "outside"
         ],
         "correct_choice_idx": 0,
-        "direct_answers": "['work', 'office', 'work', 'work', 'at work', 'desk', 'at desk', 'office', 'work desk', 'office']",
+        "direct_answers": [
+            "work",
+            "office",
+            "work",
+            "work",
+            "at work",
+            "desk",
+            "at desk",
+            "office",
+            "work desk",
+            "office"
+        ],
         "rationales": [
             "The man is eating pizza at a work desk in an office setting.",
             "The man is near a computer keyboard.",
@@ -46,7 +68,18 @@
             "musician"
         ],
         "correct_choice_idx": 1,
-        "direct_answers": "['farmer', 'farmer', 'bus driver', 'farmer', 'shepherd', 'farmer', 'bus driver', 'farmer', 'farmer', 'farmer']",
+        "direct_answers": [
+            "farmer",
+            "farmer",
+            "bus driver",
+            "farmer",
+            "shepherd",
+            "farmer",
+            "bus driver",
+            "farmer",
+            "farmer",
+            "farmer"
+        ],
         "rationales": [
             "The place is full of sheep that shows the person is a farmer.",
             "Farmer is the obvious profession as the picture shows.",
@@ -64,7 +97,18 @@
             "postal workers"
         ],
         "correct_choice_idx": 1,
-        "direct_answers": "['airport workers', 'driving', 'stilts', 'parking lot', 'designated spots', 'airport vehicles', 'by driving', 'work', 'special rights', 'workers']",
+        "direct_answers": [
+            "airport workers",
+            "driving",
+            "stilts",
+            "parking lot",
+            "designated spots",
+            "airport vehicles",
+            "by driving",
+            "work",
+            "special rights",
+            "workers"
+        ],
         "rationales": [
             "These drivers work at the airport.",
             "Cars are parked on a tarmac near an airplane. only worker vehicles are allowed on airport tarmacs.",
@@ -82,7 +126,18 @@
             "one"
         ],
         "correct_choice_idx": 1,
-        "direct_answers": "['two', 'two', 'two', 'two', 'two', 'two', 'two', 'two', 'two', 'two']",
+        "direct_answers": [
+            "two",
+            "two",
+            "two",
+            "two",
+            "two",
+            "two",
+            "two",
+            "two",
+            "two",
+            "two"
+        ],
         "rationales": [
             "Two people can be on the bike.",
             "There is a passenger seat and a driver's seat.",
@@ -100,7 +155,18 @@
             "cinema"
         ],
         "correct_choice_idx": 0,
-        "direct_answers": "['theatre', 'broadway', 'tv', 'theater', 'theater', 'bus stop', 'broadway', 'theater', 'theater', 'in theater']",
+        "direct_answers": [
+            "theatre",
+            "broadway",
+            "tv",
+            "theater",
+            "theater",
+            "bus stop",
+            "broadway",
+            "theater",
+            "theater",
+            "in theater"
+        ],
         "rationales": [
             "Most likely the sign is depicting a broadway show at a theater.",
             "The poster would be in a theater.",
@@ -118,7 +184,18 @@
             "scared"
         ],
         "correct_choice_idx": 1,
-        "direct_answers": "['curious', 'good', 'happy', 'happy', 'curious', 'happy', 'happy', 'curious', 'curious', 'curious']",
+        "direct_answers": [
+            "curious",
+            "good",
+            "happy",
+            "happy",
+            "curious",
+            "happy",
+            "happy",
+            "curious",
+            "curious",
+            "curious"
+        ],
         "rationales": [
             "The cows are happy.",
             "These cows appear happy with their heads up.",
@@ -136,7 +213,18 @@
             "downpour"
         ],
         "correct_choice_idx": 3,
-        "direct_answers": "['downpour', 'flood', 'heavy rainfall', 'downpour', 'downpour', 'downpour', 'downpour', 'downpour', 'downpour', 'down pour']",
+        "direct_answers": [
+            "downpour",
+            "flood",
+            "heavy rainfall",
+            "downpour",
+            "downpour",
+            "downpour",
+            "downpour",
+            "downpour",
+            "downpour",
+            "down pour"
+        ],
         "rationales": [
             "The way the woman uses the umbrella.",
             "The rain is really heavy and uncomfortable to be in.",
@@ -154,7 +242,18 @@
             "bow"
         ],
         "correct_choice_idx": 3,
-        "direct_answers": "['bow', 'bow', 'bow', 'bow', 'bow', 'cloth', 'bow', 'towel', 'bow', 'bow']",
+        "direct_answers": [
+            "bow",
+            "bow",
+            "bow",
+            "bow",
+            "bow",
+            "cloth",
+            "bow",
+            "towel",
+            "bow",
+            "bow"
+        ],
         "rationales": [
             "He affixed a tidy, unripped, tied tow to the bus.",
             "They are putting a big red bow on it.",
@@ -172,7 +271,18 @@
             "turn right"
         ],
         "correct_choice_idx": 3,
-        "direct_answers": "['turn right', 'take photo', 'turn left', 'point', 'turn right', 'turn right', 'turn right', 'car', 'turn right', 'turn right']",
+        "direct_answers": [
+            "turn right",
+            "take photo",
+            "turn left",
+            "point",
+            "turn right",
+            "turn right",
+            "turn right",
+            "car",
+            "turn right",
+            "turn right"
+        ],
         "rationales": [
             "The would have to turn right because the lane has right turn arrows painted on it.",
             "The arrow on the street indicates that this lane can only go in one direction at the intersection.",

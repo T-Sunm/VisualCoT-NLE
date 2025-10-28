@@ -42,11 +42,11 @@ class CLIPThoughtVerifier(BaseVerifier):
 
     def _init_clip(self):
         """Initialize CLIP model."""
-        from transformers import CLIPTextModel, CLIPProcessor
+        from vctp.utils.clip_manager import get_clip_model
 
-        self.clip_model = CLIPTextModel.from_pretrained("openai/clip-vit-base-patch16")
-        self.clip_model = self.clip_model.to(self.device)
-        self.clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch16")
+        self.clip_model, self.clip_processor = get_clip_model(
+            model_type="text", device=self.device, use_safetensors=True
+        )
 
     def verify(
         self,

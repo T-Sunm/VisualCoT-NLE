@@ -3,8 +3,8 @@
 import json
 import os
 from typing import Dict, List, Optional, Tuple
-
 import torch
+from vctp.utils.clip_manager import get_clip_tokenizer
 
 
 class ObjectSimilarityComputer:
@@ -46,15 +46,8 @@ class ObjectSimilarityComputer:
 
     def _init_clip(self):
         """Initialize CLIP model for text similarity."""
-        try:
-            from transformers import CLIPTextModel, CLIPTokenizer
-
-            self.clip_model = CLIPTextModel.from_pretrained("openai/clip-vit-base-patch16")
-            self.clip_model = self.clip_model.cuda()
-            self.clip_processor = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch16")
-        except ImportError:
-            print("Warning: CLIP not available for object similarity")
-            self.use_clip = False
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.clip_model, self.clip_processor = get_clip_tokenizer(device=device)
 
     def compute_object_similarity(
         self, example_key: str, metric: str = "answer"

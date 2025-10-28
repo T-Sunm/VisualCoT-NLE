@@ -39,7 +39,7 @@ class LLMConfig:
     engine: str = "gpt3"
     """Engine type: gpt3, chat, opt, llama, bloom"""
 
-    engine_name: str = "text-davinci-003"
+    engine_name: Optional[str] = None
     """Specific model name"""
 
     api_keys: List[str] = field(default_factory=list)

@@ -39,7 +39,12 @@ OBJECT_SELECTION_QUERY_COMPLETION = """Question: {question}
 Options:
 The most related option is"""
 
-
+OBJECT_SELECTION_STRUCTURED_INSTRUCTION = (
+    "You are an expert at analyzing visual scenes and selecting the most relevant object "
+    "for answering questions. Choose the single most important object from the provided list "
+    "that would help answer the question. Respond in JSON format with the selected object name "
+    "and your reasoning."
+)
 # ============================================================================
 # Question Answering Prompts
 # ============================================================================
@@ -47,7 +52,7 @@ The most related option is"""
 QA_SYSTEM_PROMPT_CHAT = (
     "Let's play a game. I have an image and a complex question about it. "
     "I will provide you some information about the image in the context, "
-    "and you will give me the possible answer and reason to the question. "
+    "and you will give me the possible answer, reasoning, and your confidence level. "
     "You must provide an answer and can not say unclear or unknown. "
     "Please follow the format and answer style of the following examples and complete the last example.\n"
 )
@@ -64,7 +69,9 @@ QA_ANSWER_PREFIX_COMPLETION = "Answer: The answer is"
 QA_EXAMPLE_WITH_COT = """Context: {context}
 ===
 Question: {question}{choices}
-{answer_prefix} {answer}. {rationale}
+Answer: {answer}
+Rationale: {rationale}
+Confidence: {confidence}
 
 ===
 """
@@ -81,7 +88,7 @@ QA_QUERY_WITH_COT = """Context: {context}
 {scene_graph}
 ===
 Question: {question}{choices}
-{answer_prefix}"""
+Answer:"""
 
 QA_QUERY_WITHOUT_COT = """Context: {context}
 {scene_graph}

@@ -1,8 +1,7 @@
-"""Thought verification using CLIP or BLIP2."""
-
 from typing import List, Tuple, Optional
 import numpy as np
 import torch
+from vctp.utils.clip_manager import get_clip_model
 
 
 class ThoughtVerifier:
@@ -43,16 +42,7 @@ class ThoughtVerifier:
             self._init_clip()
 
     def _init_clip(self):
-        """Initialize CLIP model."""
-        try:
-            from transformers import CLIPProcessor, CLIPTextModel
-
-            self.clip_model = CLIPTextModel.from_pretrained("openai/clip-vit-base-patch16")
-            self.clip_model = self.clip_model.cuda()
-            self.clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch16")
-        except ImportError:
-            print("Warning: CLIP not available for thought verification")
-            self.use_clip = False
+        self.clip_model, self.clip_processor = get_clip_model(model_type="text", device="cuda")
 
     def verify_thoughts(
         self,

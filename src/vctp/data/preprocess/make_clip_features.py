@@ -5,6 +5,12 @@ import numpy as np
 from tqdm import tqdm
 from transformers import CLIPProcessor, CLIPModel
 import argparse
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from vctp.utils.clip_manager import get_clip_model
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--questions", type=str, required=True, help="path to questions")
@@ -25,9 +31,8 @@ else:
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
-model = CLIPModel.from_pretrained("openai/clip-vit-base-patch16", use_safetensors=True)
-model = model.to(device)
-processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch16")
+model, processor = get_clip_model(model_type="full", device=device, use_safetensors=True)
+
 text_embeds_list = []
 image_embeds_list = []
 for q in tqdm(dataset):

@@ -98,35 +98,51 @@ def parse_object_name(raw_result_list: List) -> List[str]:
 
 def extract_answer_and_rationale(
     response_text: str, chain_of_thoughts: bool = True
-) -> Tuple[str, Optional[str]]:
+) -> Tuple[str, Optional[str], float]:
     """
     Extract answer and rationale from LLM response.
+
+    Expected format:
+        Answer: <answer text>
+        Rationale: <rationale text>
+        Confidence: 0.95
 
     Args:
         response_text: Raw response from LLM
         chain_of_thoughts: Whether CoT is used
 
     Returns:
-        Tuple of (answer, rationale)
+        Tuple of (answer, rationale, confidence)
     """
-    if not chain_of_thoughts:
-        # No CoT - entire response is answer
+    import re
+
+    response_text = response_text.strip()
+
+    # Extract answer (required)
+    answer_match = re.search(r"answer:\s*(.+?)(?:\n|$)", response_text, re.IGNORECASE)
+    if not answer_match:
+        # Fallback: no tag, take first line
         answer = process_answer(response_text.split("\n")[0])
-        return answer, None
+        return answer, None, 0.0
 
-    # With CoT - split on first period
-    parts = response_text.split(".")
+    answer = process_answer(answer_match.group(1).strip())
 
-    if len(parts) < 2:
-        # No rationale found
-        answer = process_answer(response_text.split("\n")[0])
-        return answer, None
+    # Extract rationale (optional, only if CoT)
+    rationale = None
+    if chain_of_thoughts:
+        rationale_match = re.search(
+            r"rationale:\s*(.+?)(?=confidence:|$)", response_text, re.IGNORECASE | re.DOTALL
+        )
+        if rationale_match:
+            rationale = rationale_match.group(1).strip()
 
-    # First part is answer, rest is rationale
-    answer = process_answer(parts[0])
-    rationale = ".".join(parts[1:]).strip()
+    # Extract confidence (optional)
+    confidence = 0.0
+    confidence_match = re.search(r"confidence:\s*(0\.\d+)", response_text, re.IGNORECASE)
+    if confidence_match:
+        confidence = float(confidence_match.group(1))
 
-    return answer, rationale
+    return answer, rationale, confidence
 
 
 def extract_logprobs_until_stop(

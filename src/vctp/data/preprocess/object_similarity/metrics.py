@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List
 import torch
-from transformers import CLIPTextModel, CLIPTokenizer
+from vctp.utils.clip_manager import get_clip_tokenizer
 
 
 class SimilarityMetric(ABC):
@@ -21,10 +21,9 @@ class AnswerSimilarityMetric(SimilarityMetric):
     """CLIP-based similarity between objects and answers."""
 
     def __init__(self, model_name: str = "openai/clip-vit-base-patch16"):
+
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = CLIPTextModel.from_pretrained(model_name, use_safetensors=True).to(self.device)
-        self.tokenizer = CLIPTokenizer.from_pretrained(model_name)
-        self.model.eval()
+        self.model, self.tokenizer = get_clip_tokenizer(model_name=model_name, device=self.device)
 
     def compute(self, obj_list: List[str], answers: List[str] = None, **kwargs) -> Dict[str, float]:
         """Compute CLIP similarity between objects and answers."""

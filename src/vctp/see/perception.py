@@ -480,3 +480,76 @@ class BLIP2OnlyPerception(PerceptionModule):
             clip_image_embed=None,
             region_captions=region_captions,
         )
+
+
+# if __name__ == "__main__":
+#     import pprint
+#     from pathlib import Path
+
+#     # --- Configuration ---
+#     # This assumes the script is run from the project's root directory.
+#     # Adjust paths if you run it from somewhere else.
+#     PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+#     SG_BASE_DIR = PROJECT_ROOT / "data/processed/input_text/scene_graph_text"
+#     IMAGE_DIR = PROJECT_ROOT / "data/raw/aokvqa_images"
+
+#     # --- Test Data ---
+#     # From your expected output example.
+#     TEST_IMAGE_ID = "000000000000"
+#     TEST_QUESTION = "What is the man doing?"
+
+#     test_image_path = IMAGE_DIR / f"{TEST_IMAGE_ID}.jpg"
+#     if not test_image_path.exists():
+#         print(f"Warning: Test image '{test_image_path}' not found.")
+#         # Fallback to an image that exists in the project structure for demonstration
+#         FALLBACK_IMAGE_ID = "000000000008"
+#         test_image_path = IMAGE_DIR / f"{FALLBACK_IMAGE_ID}.jpg"
+#         if test_image_path.exists():
+#             print(f"Using fallback image: '{test_image_path}'")
+#             TEST_IMAGE_ID = FALLBACK_IMAGE_ID
+#         else:
+#             print(f"Error: Fallback image not found either. Please check paths.")
+#             exit()
+
+#     # --- Initialize Perception Module ---
+#     print("Initializing VisualCoTPerception module...")
+#     perception_module = VisualCoTPerception(
+#         sg_dir=str(SG_BASE_DIR / "scene_graph_coco17"),
+#         sg_attr_dir=str(SG_BASE_DIR / "scene_graph_coco17_attr"),
+#         sg_caption_dir=str(SG_BASE_DIR / "scene_graph_coco17_caption"),
+#         use_clip_features=True,
+#         use_blip2=False,  # Keep False unless you have BLIP2 set up
+#         debug=True,
+#     )
+#     print("Initialization complete.")
+
+#     # --- Run Perception ---
+#     print(f"\nRunning perception for image ID: {TEST_IMAGE_ID}")
+#     print(f"Question: {TEST_QUESTION}")
+
+#     evidence = perception_module.run(
+#         image_path=str(test_image_path),
+#         question=TEST_QUESTION,
+#         max_objects=10,  # Limit for cleaner output
+#     )
+
+#     # --- Display Results ---
+#     print("\n" + "=" * 20 + " PERCEPTION OUTPUT " + "=" * 20)
+#     pprint.pprint(evidence)
+#     print("=" * 61)
+
+#     print("\n--- Expected Output Structure ---")
+#     print(
+#         """
+#     EvidenceBundle(
+#         image_id="000000000057",
+#         global_caption="A man playing tennis...",
+#         detected_objects=[DetectedObject(name="man", bbox=[...], score=0.95, ...)],
+#         attributes={"man": ["standing", "playing"], ...},
+#         relations=[...],
+#         clip_image_embed=np.array([...]), # Should not be None
+#         region_captions=None or {...}
+#     )
+#     """
+#     )
+#     print("Test finished. Compare the output above with the expected structure.")
