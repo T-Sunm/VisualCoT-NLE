@@ -40,14 +40,13 @@ class ObjectSimilarityComputer:
         # CLIP model for answer-based similarity
         self.clip_model = None
         self.clip_processor = None
-
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         if use_clip:
             self._init_clip()
 
     def _init_clip(self):
         """Initialize CLIP model for text similarity."""
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.clip_model, self.clip_processor = get_clip_tokenizer(device=device)
+        self.clip_model, self.clip_processor = get_clip_tokenizer(device=self.device)
 
     def compute_object_similarity(
         self, example_key: str, metric: str = "answer"
@@ -142,7 +141,9 @@ class ObjectSimilarityComputer:
 
         return similarity_dict
 
-    def _compute_answer_similarity(self, example_key: str, obj_list: List[str]) -> Dict[str, float]:
+    def _compute_answer_similarity(
+        self, example_key: str, obj_list: List[str]
+    ) -> Dict[str, float]:
         """
         Compute similarity based on answer using CLIP.
 
@@ -164,14 +165,18 @@ class ObjectSimilarityComputer:
 
         with torch.no_grad():
             # Encode answers
-            inputs = self.clip_processor(text=answer_list, return_tensors="pt", padding=True)
-            inputs = {k: v.cuda() for k, v in inputs.items()}
+            inputs = self.clip_processor(
+                text=answer_list, return_tensors="pt", padding=True
+            )
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
             outputs = self.clip_model(**inputs)
             ans_text_emb = outputs["pooler_output"].mean(dim=0).unsqueeze(dim=0)
 
             # Encode objects
-            inputs = self.clip_processor(text=obj_list, return_tensors="pt", padding=True)
-            inputs = {k: v.cuda() for k, v in inputs.items()}
+            inputs = self.clip_processor(
+                text=obj_list, return_tensors="pt", padding=True
+            )
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
             outputs = self.clip_model(**inputs)
             obj_text_emb = outputs["pooler_output"]
 
@@ -183,11 +188,13 @@ class ObjectSimilarityComputer:
             sim_scores = obj_text_emb @ ans_text_emb.T
 
             for idx, obj_name in enumerate(obj_list):
-                similarity_dict[obj_name] = sim_scores[idx, 0].cpu().item()
+                similarity_dict[obj_name] = sim_scores[idx, 0].to(self.device).item()
 
         return similarity_dict
 
-    def get_most_relevant_object(self, example_key: str, metric: str = "answer") -> Optional[str]:
+    def get_most_relevant_object(
+        self, example_key: str, metric: str = "answer"
+    ) -> Optional[str]:
         """
         Get the most relevant object for an example.
 
@@ -198,7 +205,9 @@ class ObjectSimilarityComputer:
         Returns:
             Most relevant object name or None
         """
-        obj_list, conf_list, similarity_dict = self.compute_object_similarity(example_key, metric)
+        obj_list, conf_list, similarity_dict = self.compute_object_similarity(
+            example_key, metric
+        )
 
         if not similarity_dict:
             return None
@@ -220,7 +229,9 @@ class ObjectSimilarityComputer:
         Returns:
             List of (object_name, similarity_score) tuples
         """
-        obj_list, conf_list, similarity_dict = self.compute_object_similarity(example_key, metric)
+        obj_list, conf_list, similarity_dict = self.compute_object_similarity(
+            example_key, metric
+        )
 
         if not similarity_dict:
             # Return by confidence

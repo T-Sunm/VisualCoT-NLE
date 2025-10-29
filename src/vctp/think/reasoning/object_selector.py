@@ -73,7 +73,12 @@ class ObjectSelector:
         system_msg, user_msg = self.prompt_builder.build_structured(
             question=question, object_list=object_names, examples=examples
         )
-
+        print(f"\n{'='*70}")
+        print("[ATTEND MODULE] OBJECT SELECTION PROMPT")
+        print(f"{'='*70}")
+        print(f"SYSTEM: {system_msg}")
+        print(f"\nUSER: {user_msg}")
+        print(f"{'='*70}\n")
         try:
             # Call Groq with structured output
             response = self.client.chat.completions.create(

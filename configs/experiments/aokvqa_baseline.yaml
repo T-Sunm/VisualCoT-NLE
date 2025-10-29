@@ -1,7 +1,7 @@
 experiment:
   seed: 42
   dataset: aokvqa
-  split: val
+  split: train
   batch_size: 1
   num_workers: 0
   output_dir: runs/aokvqa_groq

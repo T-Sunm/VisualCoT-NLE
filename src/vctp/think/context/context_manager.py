@@ -1,5 +1,6 @@
 """Unified context manager for example retrieval."""
 
+import os
 from typing import Dict, List, Optional, Tuple
 
 from .similarity_retriever import SimilarityRetriever
@@ -18,8 +19,9 @@ class ContextManager:
         train_answers: Dict[str, List[str]],
         train_rationales: Optional[Dict[str, List[str]]] = None,
         dataset_name: str = "aokvqa",
-        split: str = "val",
+        split: str = "train",
         use_object_similarity: bool = True,
+        precomputed_object_sim_path: Optional[str] = None,
     ):
         """
         Initialize context manager.
@@ -52,6 +54,16 @@ class ContextManager:
                 train_answers=train_answers,
                 train_rationales=train_rationales,
                 use_clip=True,
+            )
+
+        self._precomputed_object_sim = None
+        if precomputed_object_sim_path and os.path.exists(precomputed_object_sim_path):
+            import pickle
+
+            with open(precomputed_object_sim_path, "rb") as f:
+                self._precomputed_object_sim = pickle.load(f)
+            print(
+                f"Loaded precomputed object similarity from {precomputed_object_sim_path}"
             )
 
         self.train_questions = train_questions
@@ -107,32 +119,50 @@ class ContextManager:
         Returns:
             Tuple of (example_keys, object_similarity_dicts)
         """
+
+        print(f"\n[DEBUG get_interactive_context_examples]")
+        print(f"  query_key: {query_key}")
+        print(f"  n_shot: {n_shot}")
+        print(f"  object_sim_metric: {object_sim_metric}")
+        print(f"  Has precomputed: {self._precomputed_object_sim is not None}")
+        if self._precomputed_object_sim:
+            print(f"  Precomputed keys: {len(self._precomputed_object_sim)}")
+            sample_keys = list(self._precomputed_object_sim.keys())[:3]
+            print(f"  Sample keys: {sample_keys}")
         # Get similarity scores for all examples
         similarity_scores = self.similarity_retriever.get_similar_with_scores(
             query_key=query_key, metric=metric
         )
 
         # Sort by similarity
-        sorted_examples = sorted(similarity_scores.items(), key=lambda x: x[1], reverse=True)
+        sorted_examples = sorted(
+            similarity_scores.items(), key=lambda x: x[1], reverse=True
+        )
 
         # Get examples with valid object selections
         example_keys = []
         object_sims = []
 
         for example_key, score in sorted_examples:
+            # Skip the query itself
             if example_key == query_key:
                 continue
 
-            # Get object similarity for this example
-            if self.object_similarity:
+            # Get object similarity dict
+            obj_sim_dict = {}
+            if self._precomputed_object_sim:
+                # Use precomputed (faster)
+                obj_sim_dict = self._precomputed_object_sim.get(example_key, {})
+            elif self.object_similarity:
+                # Compute on-the-fly
                 _, _, obj_sim_dict = self.object_similarity.compute_object_similarity(
                     example_key, metric=object_sim_metric
                 )
 
-                # Only include examples with at least one object
-                if obj_sim_dict:
-                    example_keys.append(example_key)
-                    object_sims.append(obj_sim_dict)
+            # Only include examples with at least one object
+            if obj_sim_dict:
+                example_keys.append(example_key)
+                object_sims.append(obj_sim_dict)
 
             if len(example_keys) >= n_shot:
                 break

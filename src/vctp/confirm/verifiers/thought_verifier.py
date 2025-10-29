@@ -70,7 +70,9 @@ class CLIPThoughtVerifier(BaseVerifier):
 
         with torch.no_grad():
             # Encode thoughts
-            inputs = self.clip_processor(text=thoughts, return_tensors="pt", padding=True)
+            inputs = self.clip_processor(
+                text=thoughts, return_tensors="pt", padding=True
+            )
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
 
             outputs = self.clip_model(**inputs)
@@ -122,7 +124,9 @@ class CLIPThoughtVerifier(BaseVerifier):
 
         with torch.no_grad():
             # Encode thoughts
-            inputs = self.clip_processor(text=thought_list, return_tensors="pt", padding=True)
+            inputs = self.clip_processor(
+                text=thought_list, return_tensors="pt", padding=True
+            )
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
 
             outputs = self.clip_model(**inputs)
@@ -137,6 +141,8 @@ class CLIPThoughtVerifier(BaseVerifier):
 
             # Compute similarities
             sim_scores = (img_emb @ thought_emb.T).squeeze()
+            if sim_scores.dim() == 0:  # If 0-d tensor (single thought)
+                sim_scores = sim_scores.unsqueeze(0)  # Make it 1-d
 
             # Filter thoughts
             filtered_thoughts = []

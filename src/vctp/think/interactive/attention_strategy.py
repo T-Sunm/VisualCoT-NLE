@@ -66,8 +66,10 @@ class LLMAttentionStrategy(AttentionStrategy):
         # Get examples with object selection
         examples = []
         if query_key and self.context_manager:
-            example_keys, rel_objs = self.context_manager.get_examples_with_object_selection(
-                query_key=query_key, n_shot=self.n_shot
+            example_keys, rel_objs = (
+                self.context_manager.get_interactive_context_examples(
+                    query_key=query_key, n_shot=self.n_shot
+                )
             )
 
             # Format examples
@@ -77,7 +79,9 @@ class LLMAttentionStrategy(AttentionStrategy):
                     best_obj = max(rel_obj_dict.items(), key=lambda x: x[1])[0]
                     examples.append(
                         {
-                            "question": self.context_manager.train_questions.get(key, ""),
+                            "question": self.context_manager.train_questions.get(
+                                key, ""
+                            ),
                             "selected_object": best_obj,
                         }
                     )

@@ -56,5 +56,10 @@ python -m src.vctp.data.preprocess.object_similarity.cli `
     --metric answer `
     --device cuda
 
+python src/vctp/data/preprocess/make_clip_features.py `
+    --questions data/raw/aokvqa_annotations/aokvqa_v1p0_train_from_hf.json `
+    --images data/raw/aokvqa_images/ `
+    --qfeatures data/processed/coco_clip_new/coco_clip_vitb16_train2017_aokvqa_question.npy `
+    --ifeatures data/processed/coco_clip_new/coco_clip_vitb16_train2017_aokvqa_convertedidx_image.npy
 
 python src/cli/run_aokvqa_pipeline.py --config configs/experiments/aokvqa_baseline.yaml --limit 1

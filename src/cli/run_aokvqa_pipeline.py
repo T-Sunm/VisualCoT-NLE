@@ -38,6 +38,7 @@ class AOKVQAPipeline:
             config_path: Path to YAML configuration file
         """
         self.config = self._load_config(config_path)
+        self.split = self.config["experiment"].get("split", "val")
         self.device = self._get_device()
 
         # Initialize components
@@ -54,7 +55,9 @@ class AOKVQAPipeline:
         else:
             # Simple single-pass pipeline
             self.pipeline = VCTPPipeline(
-                see=self.see_module, think=self.think_module, confirm=self.confirm_module
+                see=self.see_module,
+                think=self.think_module,
+                confirm=self.confirm_module,
             )
 
         # Load dataset
@@ -114,7 +117,9 @@ class AOKVQAPipeline:
                 blip2_api_urls=see_config.get("blip2_api_urls"),
                 # CLIP
                 use_clip_features=see_config.get("use_clip", True),
-                clip_model_name=see_config.get("clip_model", "openai/clip-vit-base-patch16"),
+                clip_model_name=see_config.get(
+                    "clip_model", "openai/clip-vit-base-patch16"
+                ),
                 device=self.device,
                 debug=see_config.get("debug", False),
             )
@@ -144,7 +149,9 @@ class AOKVQAPipeline:
                 chain_of_thoughts=think_config.get("chain_of_thoughts", True),
                 choice_only=think_config.get("choice_only", False),
                 n_ensemble=think_config.get("n_ensemble", 1),
-                use_thought_verification=think_config.get("use_thought_verification", False),
+                use_thought_verification=think_config.get(
+                    "use_thought_verification", False
+                ),
                 debug=think_config.get("debug", False),
             )
 
@@ -178,7 +185,9 @@ class AOKVQAPipeline:
             debug=think_config.get("debug", False),
         )
 
-    def _create_examples_manager(self, think_config: Dict) -> Optional[FewShotExamplesManager]:
+    def _create_examples_manager(
+        self, think_config: Dict
+    ) -> Optional[FewShotExamplesManager]:
         """Create examples manager for few-shot prompting."""
         # Few-shot examples are optional
         if not think_config.get("use_few_shot", True):
@@ -200,8 +209,10 @@ class AOKVQAPipeline:
         train_annotations = load_aokvqa_annotations(train_ann_file)
 
         # Build dictionaries
-        train_answers, train_questions, train_rationales, train_choices = build_aokvqa_dicts(
-            train_annotations, choice_only=dataset_cfg.get("choice_only", False)
+        train_answers, train_questions, train_rationales, train_choices = (
+            build_aokvqa_dicts(
+                train_annotations, choice_only=dataset_cfg.get("choice_only", False)
+            )
         )
 
         # Load captions if available
@@ -251,9 +262,8 @@ class AOKVQAPipeline:
     def _build_dataset(self):
         """Build dataset iterator."""
         dataset_cfg = self.config.get("dataset", {})
-        split = self.config["experiment"].get("split", "val")
 
-        return build_dataset(dataset_cfg, split)
+        return build_dataset(dataset_cfg, self.split)
 
     def run(self, limit: Optional[int] = None, save_results: bool = True):
         """
@@ -265,7 +275,9 @@ class AOKVQAPipeline:
         """
         results = []
 
-        print(f"\nRunning pipeline on {self.config['experiment']['dataset']} dataset...")
+        print(
+            f"\nRunning pipeline on {self.config['experiment']['dataset']} dataset..."
+        )
         print(f"Split: {self.config['experiment']['split']}")
 
         for idx, sample in enumerate(self.dataset):
@@ -280,7 +292,9 @@ class AOKVQAPipeline:
                 results.append(result)
 
                 print(f"  Answer: {result['answer']}")
-                print(f"  Confirmed: {result['confirmed']} (score: {result['score']:.3f})")
+                print(
+                    f"  Confirmed: {result['confirmed']} (score: {result['score']:.3f})"
+                )
 
             except Exception as e:
                 print(f"  ERROR: {e}")
@@ -317,7 +331,9 @@ class AOKVQAPipeline:
 
         total = len(results)
         confirmed = sum(1 for r in results if r.get("confirmed", False))
-        avg_score = sum(r.get("score", 0.0) for r in results) / total if total > 0 else 0.0
+        avg_score = (
+            sum(r.get("score", 0.0) for r in results) / total if total > 0 else 0.0
+        )
 
         print(f"\n{'='*70}")
         print(f"SUMMARY")
@@ -351,15 +367,17 @@ class AOKVQAPipeline:
                 train_annotations = load_aokvqa_annotations(train_ann_file)
                 train_answers, train_questions, train_rationales, train_choices = (
                     build_aokvqa_dicts(
-                        train_annotations, choice_only=dataset_cfg.get("choice_only", False)
+                        train_annotations,
+                        choice_only=dataset_cfg.get("choice_only", False),
                     )
                 )
 
                 # Paths
-                clip_dir = dataset_cfg.get("clip_features_dir", "data/processed/coco_clip_new")
+                clip_dir = dataset_cfg.get(
+                    "clip_features_dir", "data/processed/coco_clip_new"
+                )
                 sg_dir = dataset_cfg.get("scene_graph_dir")
                 sg_attr_dir = dataset_cfg.get("scene_graph_attr_dir")
-                split = self.config["experiment"].get("split", "val")
 
                 try:
                     context_manager = InteractiveContextManager(
@@ -373,12 +391,19 @@ class AOKVQAPipeline:
                         train_answers=train_answers,
                         train_rationales=train_rationales,
                         dataset_name="aokvqa",
-                        split=split,
-                        use_object_similarity=pipeline_config.get("use_object_similarity", True),
+                        split=self.split,
+                        use_object_similarity=pipeline_config.get(
+                            "use_object_similarity", True
+                        ),
+                        precomputed_object_sim_path=dataset_cfg.get(
+                            "precomputed_object_similarity_path"
+                        ),
                     )
 
                     # Load the CLIP features
-                    similarity_metric = pipeline_config.get("similarity_metric", "imagequestion")
+                    similarity_metric = pipeline_config.get(
+                        "similarity_metric", "imagequestion"
+                    )
                     context_manager.load_features(metric=similarity_metric)
 
                     print("✓ Context manager loaded with pre-computed CLIP features")
@@ -402,7 +427,9 @@ class AOKVQAPipeline:
 
 def main():
     """Main entry point."""
-    parser = argparse.ArgumentParser(description="Run AOKVQA pipeline with refactored VCTP")
+    parser = argparse.ArgumentParser(
+        description="Run AOKVQA pipeline with refactored VCTP"
+    )
     parser.add_argument(
         "--config",
         type=str,
