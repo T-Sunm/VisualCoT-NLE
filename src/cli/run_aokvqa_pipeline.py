@@ -356,7 +356,7 @@ class AOKVQAPipeline:
             # Load training data for context manager
             train_ann_file = dataset_cfg.get("train_annotations_file")
             if not train_ann_file or not os.path.exists(train_ann_file):
-                print(f"⚠ Warning: Missing training annotations: {train_ann_file}")
+                print(f"Warning: Missing training annotations: {train_ann_file}")
                 print("  → Will use random few-shot examples instead")
                 context_manager = None
             else:

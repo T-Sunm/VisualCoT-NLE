@@ -149,13 +149,24 @@ class CLIPThoughtVerifier(BaseVerifier):
             all_thoughts = []
             scores = []
 
-            for i, (thought, sim) in enumerate(zip(thought_list, sim_scores)):
-                score = sim.item()
-                scores.append(score)
-                all_thoughts.append(thought)
+        # ← THÊM DEBUG CHI TIẾT
+        print(f"\n[CLIPThoughtVerifier] Similarity Analysis:")
+        for i, (thought, sim) in enumerate(zip(thought_list, sim_scores)):
+            score = sim.item()
+            scores.append(score)
+            all_thoughts.append(thought)
 
-                if score > self.threshold and len(thought) > 0:
-                    filtered_thoughts.append(thought)
+            passed = "✓ PASS" if score > self.threshold else "✗ FAIL"
+            print(f"  [{i+1}] Score: {score:.4f} {passed}")
+            print(f"      Text: {thought[:60]}...")
+
+            if score > self.threshold and len(thought) > 0:
+                filtered_thoughts.append(thought)
+
+        print(f"\n[CLIPThoughtVerifier] Summary:")
+        print(f"  Total: {len(thought_list)} thoughts")
+        print(f"  Passed: {len(filtered_thoughts)} thoughts")
+        print(f"  Average similarity: {np.mean(scores):.4f}")
 
         filtered_text = ". ".join(filtered_thoughts).strip()
         if filtered_text:
