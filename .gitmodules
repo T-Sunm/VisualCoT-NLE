@@ -1,3 +1,9 @@
-[submodule "VisualCoT"]
-	path = VisualCoT
-	url = https://github.com/ais-lab/VisualCoT.git
+[submodule "external/describe-anything"]
+	path = external/describe-anything
+	url = https://github.com/NVlabs/describe-anything.git
+[submodule "external/scene_graph_benchmark"]
+	path = external/scene_graph_benchmark
+	url = https://github.com/microsoft/scene_graph_benchmark.git
+[submodule "external/VisualCoT"]
+	path = external/VisualCoT
+	url = https://github.com/UMass-Embodied-AGI/VisualCoT.git
