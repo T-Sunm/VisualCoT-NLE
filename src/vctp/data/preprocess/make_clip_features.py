@@ -1,3 +1,4 @@
+import os
 from PIL import Image
 import json
 import torch
@@ -24,11 +25,6 @@ parser.add_argument(
 args = parser.parse_args()
 
 dataset = json.load(open(args.questions))
-if "question" in dataset:
-    # VQAv2
-    dataset = dataset["questions"]
-else:
-    dataset = [{"question": d["question"], "image_id": d["image_id"]} for d in dataset]
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
@@ -41,10 +37,18 @@ text_embeds_list = []
 image_embeds_list = []
 for q in tqdm(dataset):
     imageID = q["image_id"]
-    file_name = args.images + str(imageID).zfill(12) + ".jpg"
+    imageName = q["image_name"]
+    if "train2014" in imageName:
+        split_folder = "train2014"
+    elif "val2014" in imageName:
+        split_folder = "val2014"
+    else:
+        split_folder = "test2014"
+
+    file_name = os.path.join(args.images, split_folder, imageName)
     image = Image.open(file_name)
     inputs = processor(
-        text=[q["question"]], images=image, return_tensors="pt", padding=True
+        text=[q["question"]], images=image, return_tensors="pt", padding=True, truncation=True
     )
     inputs = {k: v.to(device) for k, v in inputs.items()}
     with torch.no_grad():

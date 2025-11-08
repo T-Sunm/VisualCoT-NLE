@@ -1,0 +1,45 @@
+experiment:
+  seed: 42
+  dataset: vivqax
+  split: train
+  batch_size: 1
+  num_workers: 0
+  output_dir: runs/vivqax
+
+pipeline:
+  mode: iterative 
+  max_rounds: 3
+  stop_on_convergence: true
+  attention_strategy: llm  
+  use_context_manager: true
+  debug: false
+
+see:
+  name: visualcot-perception
+  iterative_strategy: caption
+  caption_type: vinvl
+  use_blip2: false
+  use_clip: true
+  clip_model: openai/clip-vit-base-patch16
+  debug: false
+
+think:
+  name: visualcot-reasoner
+  engine: groq
+  engine_name: openai/gpt-oss-20b
+  chain_of_thoughts: true
+  choice_only: false
+  n_ensemble: 1
+  use_thought_verification: false
+  temperature: 0.0
+  max_tokens: 100
+  debug: false
+
+confirm:
+  name: visual-consistency
+  method: clip
+  threshold: 0.0
+  debug: false
+
+datasets:
+  vivqax: configs/datasets/vivqax.yaml

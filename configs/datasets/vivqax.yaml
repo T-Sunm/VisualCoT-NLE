@@ -1,0 +1,28 @@
+dataset:
+  name: vivqax
+  
+  # Val/test data
+  annotations_file: /home/research/workspace/data/raw/vivqa-x/annotations/train.json
+  images_root: /home/research/workspace/data/raw/coco/images
+  
+  # Training data for few-shot context
+  train_annotations_file: /home/research/workspace/data/raw/vivqa-x/annotations/train.json
+  train_caption_file: data/processed/captions_vivqax_train.json
+  
+  # VinVL captions (optional)
+  valcaption_file: data/processed/vinvl_caption_vivqax_val.tsv
+  
+  # Scene graphs
+  scene_graph_dir: data/processed/input_text/scene_graph_text/scene_graph_vivqax
+  scene_graph_attr_dir: data/processed/input_text/scene_graph_text/scene_graph_vivqax_attr
+  concept_caption_dir: data/processed/input_text/scene_graph_text/scene_graph_vivqax_caption
+  
+  # CLIP features for few-shot example selection
+  train_line2sample_idx_file: data/processed/coco_clip_new/vivqax_qa_line2sample_idx_train.json
+  train_question_features_file: data/processed/coco_clip_new/coco_clip_vitb16_train_vivqax_question.npy
+  train_image_features_file: data/processed/coco_clip_new/coco_clip_vitb16_train_vivqax_convertedidx_image.npy
+  train_answers_file: data/processed/object_similarity/train_object_select_vivqax_answer.pkl
+  precomputed_object_similarity_path: data/processed/object_similarity/train_object_select_vivqax_answer.pkl
+  
+  # Options
+  choice_only: false
