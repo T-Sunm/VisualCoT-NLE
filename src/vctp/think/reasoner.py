@@ -240,7 +240,7 @@ class VisualCoTReasoner(ReasoningModule):
 #     from .llm import create_llm_adapter
 #     from .prompts import FewShotExamplesManager
 #     from vctp.core.types import EvidenceBundle, DetectedObject, ReasoningOutput
-#     from vctp.data.loader import load_aokvqa_annotations, build_aokvqa_dicts, load_coco_captions
+#     from vctp.data.loader import load_vivqax_annotations, build_vivqax_dicts, load_coco_captions
 
 #     print("=" * 80)
 #     print("TESTING VISUAL COT REASONER WITH REAL AOKVQA DATA")
@@ -265,7 +265,7 @@ class VisualCoTReasoner(ReasoningModule):
 #         print("Please download AOKVQA data first.")
 #         exit(1)
 
-#     train_annotations = load_aokvqa_annotations(str(train_annotations_path))
+#     train_annotations = load_vivqax_annotations(str(train_annotations_path))
 #     print(f"✓ Loaded {len(train_annotations)} training samples")
 
 #     # Build dicts

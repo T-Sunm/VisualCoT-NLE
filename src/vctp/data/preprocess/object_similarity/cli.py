@@ -5,12 +5,12 @@ from pathlib import Path
 
 from .similarity_builder import ObjectSimilarityBuilder
 from .metrics import AnswerSimilarityMetric, RationaleSimilarityMetric
-from .aokvqa_processor import AOKVQASimilarityProcessor
+from .processor import Processor  # Import processor chung cho VivQA-X
 
 
 def main():
     parser = argparse.ArgumentParser(description="Build object similarity scores")
-    parser.add_argument("--dataset", choices=["aokvqa"], required=True)
+    parser.add_argument("--dataset", choices=["aokvqa", "vivqax"], required=True)
     parser.add_argument("--split", choices=["train", "val"], default="train")
     parser.add_argument("--sg_path", type=str, required=True)
     parser.add_argument("--annotations_dir", type=str, required=True)
@@ -25,17 +25,18 @@ def main():
     else:
         metric = RationaleSimilarityMetric()
 
-    # Initialize processor
-    if args.dataset == "aokvqa":
-        processor = AOKVQASimilarityProcessor(args.annotations_dir)
+    # Initialize processor based on dataset
+    processor = Processor(args.annotations_dir)  # Dùng processor chung
+    sg_subdir = "scene_graph_coco14"
+    sg_attr_subdir = "scene_graph_coco14_attr"
 
     # Load data
     questions, answers, rationales = processor.load_split(args.split)
 
     # Build similarity
     builder = ObjectSimilarityBuilder(
-        sg_dir=Path(args.sg_path) / "scene_graph_coco17",
-        sg_attr_dir=Path(args.sg_path) / "scene_graph_coco17_attr",
+        sg_dir=Path(args.sg_path) / sg_subdir,
+        sg_attr_dir=Path(args.sg_path) / sg_attr_subdir,
         metric=metric,
     )
 

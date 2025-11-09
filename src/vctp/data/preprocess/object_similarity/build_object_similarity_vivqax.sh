@@ -1,8 +1,9 @@
 BASE_DIR="/home/research/workspace/VisualCoT-NLE"
-SG_PATH="${BASE_DIR}/data/processed/input_text/scene_graph_text"
+SG_PATH="/home/research/workspace/data/raw/scene-graph"  # Sửa path này
 VIVQA_PATH="/home/research/workspace/data/raw/vivqa-x/annotations"
 OUTPUT_PATH="${BASE_DIR}/data/processed/object_similarity"
 
+export PYTHONPATH="${BASE_DIR}/src" # Thêm thư mục 'src' vào PYTHONPATH để Python tìm thấy package 'vctp'
 mkdir -p "${OUTPUT_PATH}"
 
 python -m src.vctp.data.preprocess.object_similarity.cli \

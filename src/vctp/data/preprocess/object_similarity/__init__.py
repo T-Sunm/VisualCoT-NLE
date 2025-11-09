@@ -2,11 +2,10 @@
 
 from .similarity_builder import ObjectSimilarityBuilder
 from .metrics import AnswerSimilarityMetric, RationaleSimilarityMetric
-from .aokvqa_processor import AOKVQASimilarityProcessor
-
+from .processor import Processor
 __all__ = [
     "ObjectSimilarityBuilder",
     "AnswerSimilarityMetric",
     "RationaleSimilarityMetric",
-    "AOKVQASimilarityProcessor",
+    "Processor",
 ]
