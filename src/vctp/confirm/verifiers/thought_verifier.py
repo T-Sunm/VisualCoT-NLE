@@ -125,7 +125,7 @@ class CLIPThoughtVerifier(BaseVerifier):
         with torch.no_grad():
             # Encode thoughts
             inputs = self.clip_processor(
-                text=thought_list, return_tensors="pt", padding=True
+                text=thought_list, return_tensors="pt", padding=True, truncation=True
             )
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
 

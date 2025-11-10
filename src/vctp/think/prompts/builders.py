@@ -234,11 +234,6 @@ class QuestionAnsweringPromptBuilder:
             if valid_thoughts:
                 current_context += "\n" + " ".join(valid_thoughts)
 
-        # Format choices
-        choice_text = ""
-        if self.choice_only and choices:
-            choice_text = f"\nChoices: {', '.join(choices)}."
-
         # Add query
         if scene_graph_text:
             full_context = f"{current_context}\n{scene_graph_text}"
@@ -246,7 +241,7 @@ class QuestionAnsweringPromptBuilder:
             full_context = current_context
 
         prompt += f"Context: {full_context}\n===\n"
-        prompt += f"Question: {question}{choice_text}\n{answer_prefix}"
+        prompt += f"Question: {question}\n{answer_prefix}"
 
         return prompt
 

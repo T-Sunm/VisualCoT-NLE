@@ -4,7 +4,6 @@ from .base_adapter import BaseLLMAdapter
 from .factory import create_llm_adapter, create_llm_from_args
 from .openai_adapter import OpenAIGPT3Adapter, OpenAIChatAdapter
 from .opt_adapter import OPTAdapter
-from .llama_adapter import LLaMAAdapter
 from .groq_adapter import GroqAdapter
 from .types import LLMConfig, LLMResponse, ChatMessage
 
@@ -15,7 +14,6 @@ __all__ = [
     "OpenAIGPT3Adapter",
     "OpenAIChatAdapter",
     "OPTAdapter",
-    "LLaMAAdapter",
     "GroqAdapter",
     "LLMConfig",
     "LLMResponse",

@@ -53,12 +53,11 @@ class VisualCoTPerception(PerceptionModule):
         ocr_train_file: Optional[str] = None,
         ocr_val_file: Optional[str] = None,
         # Strategy Config
-        iterative_strategy: str = "caption",  # "sg" or "caption"
-        caption_type: str = "vinvl",  # "vinvl", "vinvl_tag", "vinvl_ocr"
+        iterative_strategy: str = "caption",
+        caption_type: str = "vinvl",
         # BLIP2 Config
         use_blip2: bool = False,
-        blip2_api_urls: Optional[List[str]] = None,
-        blip2_model_type: str = "pretrain_flant5xxl",
+        blip2_model_type: str = "Salesforce/blip2-opt-2.7b",
         # CLIP Config
         use_clip_features: bool = True,
         clip_model_name: str = "openai/clip-vit-base-patch16",
@@ -79,7 +78,6 @@ class VisualCoTPerception(PerceptionModule):
             iterative_strategy: "sg" for scene graph format, "caption" for captions
             caption_type: Type of captions to use
             use_blip2: Whether to use BLIP2 for captioning
-            blip2_api_urls: BLIP2 API endpoints
             blip2_model_type: BLIP2 model variant
             use_clip_features: Whether to extract CLIP features
             clip_model_name: CLIP model name
@@ -115,13 +113,11 @@ class VisualCoTPerception(PerceptionModule):
             strategy=iterative_strategy, include_ocr=(caption_type == "vinvl_ocr")
         )
 
-        # Initialize BLIP2 Captioner (if enabled)
+        # Initialize BLIP2 Captioner (if enabled) - FIXED HERE
         if use_blip2:
             from vctp.see.captions.blip_captioner import BLIP2Captioner
 
             self.captioner = BLIP2Captioner(
-                use_api=(blip2_api_urls is not None),
-                api_urls=blip2_api_urls,
                 model_type=blip2_model_type,
                 device=device,
                 debug=debug,
@@ -136,13 +132,6 @@ class VisualCoTPerception(PerceptionModule):
             self.clip_extractor = CLIPFeatureExtractor(model_name=clip_model_name, device=device)
         else:
             self.clip_extractor = None
-
-        if self.debug:
-            print(f"VisualCoTPerception initialized:")
-            print(f"  - Scene Graph: {sg_dir is not None}")
-            print(f"  - BLIP2: {use_blip2}")
-            print(f"  - CLIP: {use_clip_features}")
-            print(f"  - Strategy: {iterative_strategy}")
 
     def run(
         self,
@@ -213,7 +202,18 @@ class VisualCoTPerception(PerceptionModule):
     def _get_image_id(self, image_path: str) -> str:
         """Extract image ID from path."""
         path = Path(image_path)
-        return path.stem
+        base_name = path.stem
+        
+        if "COCO_train2014_" in base_name:
+            image_id = base_name.replace("COCO_train2014_", "")
+        elif "COCO_val2014_" in base_name:
+            image_id = base_name.replace("COCO_val2014_", "")
+        elif "COCO_test2014_" in base_name:
+            image_id = base_name.replace("COCO_test2014_", "")
+        else:
+            image_id = base_name
+    
+        return image_id
 
     def _detect_objects(
         self, image_id: str, image_path: str, max_objects: int
@@ -226,7 +226,6 @@ class VisualCoTPerception(PerceptionModule):
         """
         detected_objects = []
         scene_graph_attrs = []
-
         # Try to load from scene graph first
         if self.sg_detector:
             try:
@@ -307,9 +306,6 @@ class VisualCoTPerception(PerceptionModule):
                 scene_graph_attrs[:10], format_type="text"  # Top 10 objects
             )
 
-        # Final fallback
-        if not global_caption:
-            global_caption = "An image"
 
         return global_caption
 
@@ -429,9 +425,7 @@ class BLIP2OnlyPerception(PerceptionModule):
 
     def __init__(
         self,
-        use_api: bool = False,
-        api_urls: Optional[List[str]] = None,
-        model_type: str = "pretrain_flant5xxl",
+        model_type: str = "Salesforce/blip2-opt-2.7b",
         device: Optional[str] = None,
         **kwargs,
     ):
@@ -439,15 +433,13 @@ class BLIP2OnlyPerception(PerceptionModule):
         Initialize BLIP2-only perception.
 
         Args:
-            use_api: Whether to use API
-            api_urls: API endpoints
             model_type: BLIP2 model type
             device: Device to run on
         """
         from vctp.see.captions.blip_captioner import BLIP2Captioner
 
         self.captioner = BLIP2Captioner(
-            use_api=use_api, api_urls=api_urls, model_type=model_type, device=device
+            model_type=model_type, device=device
         )
 
     def run(

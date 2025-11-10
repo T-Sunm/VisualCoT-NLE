@@ -6,7 +6,6 @@ from .base_adapter import BaseLLMAdapter
 from .types import LLMConfig
 from .openai_adapter import OpenAIGPT3Adapter, OpenAIChatAdapter
 from .opt_adapter import OPTAdapter
-from .llama_adapter import LLaMAAdapter
 from .groq_adapter import GroqAdapter
 
 
@@ -63,9 +62,6 @@ def create_llm_adapter(
 
     elif engine == "opt":
         return OPTAdapter(config)
-
-    elif engine == "llama":
-        return LLaMAAdapter(config)
 
     elif engine == "groq":
         return GroqAdapter(config)

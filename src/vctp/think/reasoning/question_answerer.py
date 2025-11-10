@@ -92,7 +92,8 @@ class QuestionAnswerer:
 
             # Extract text from response
             response_text = response.text if hasattr(response, "text") else str(response)
-
+            print(f"[DEBUG] Raw LLM Response: '{response_text}'")
+            
             # Parse response
             answer, rationale, confidence = extract_answer_and_rationale(
                 response_text, chain_of_thoughts=True

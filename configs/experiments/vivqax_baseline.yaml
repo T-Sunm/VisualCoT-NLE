@@ -18,7 +18,8 @@ see:
   name: visualcot-perception
   iterative_strategy: caption
   caption_type: vinvl
-  use_blip2: false
+  use_blip2: true
+  blip2_model_type: "Salesforce/blip2-opt-2.7b"
   use_clip: true
   clip_model: openai/clip-vit-base-patch16
   debug: false

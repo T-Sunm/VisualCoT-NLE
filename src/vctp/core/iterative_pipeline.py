@@ -113,9 +113,9 @@ class IterativeVCTPPipeline:
         Follows Visual CoT algorithm:
         1. SEE: Extract all visual evidence once
         2. For each round (up to max_rounds):
-           a. ATTEND: Select most important object using LLM
-           b. THINK: Generate answer with accumulated context
-           c. Stop if answer converges
+        a. ATTEND: Select most important object using LLM
+        b. THINK: Generate answer with accumulated context
+        c. Stop if answer converges
         3. CONFIRM: Verify final answer
 
         Args:
@@ -126,20 +126,24 @@ class IterativeVCTPPipeline:
         """
         question = sample["question"]
         image_path = sample["image_path"]
-        choices = sample.get("choices")
-        reference_answer = sample.get("direct_answers")
+        
+        choices = sample.get("choices", [])  
+        reference_answer = sample.get("answer", [])
 
-        if self.debug:
-            print(f"\n{'='*70}")
-            print(f"Running Iterative Visual CoT Pipeline")
-            print(f"Question: {question}")
-            print(f"{'='*70}")
 
-        # STEP 1: SEE - Extract visual evidence (once)
-        if self.debug:
-            print("\n[1] SEE: Extracting visual evidence...")
+        print(f"\n{'='*70}")
+        print(f"Running Iterative Visual CoT Pipeline")
+        print(f"Question: {question}")
+        print(f"{'='*70}")
+
+
+        print("\n[1] SEE: Extracting visual evidence...")
 
         evidence: EvidenceBundle = self.see.run(image_path, question)
+        print(f"\n[DEBUG] Evidence details:")
+        print(f"  - Global caption: '{evidence.global_caption}'")
+        print(f"  - Detected objects: {len(evidence.detected_objects)}")
+        print(f"  - CLIP embed: {'Available' if evidence.clip_image_embed is not None else 'None'}")
 
         # Convert evidence to objects format
         objects = self._evidence_to_objects(evidence)
@@ -178,11 +182,7 @@ class IterativeVCTPPipeline:
                 print(f"  - Final answer: {answer}")
 
         else:
-            # No objects detected - fallback to single-pass
-            if self.debug:
-                print("\n[2-3] THINK: No objects detected, using single-pass...")
-
-            reasoning: ReasoningOutput = self.think.run(evidence, question, choices=choices)
+            reasoning: ReasoningOutput = self.think.run(evidence, question, choices=choices)  # ✅ Đã định nghĩa
             answer = reasoning.candidate_answer
             rationale = reasoning.cot_rationale
             all_thoughts = [rationale] if rationale else []

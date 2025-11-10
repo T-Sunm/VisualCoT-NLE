@@ -115,7 +115,7 @@ class ViVQAXPipeline:
                 caption_type=see_config.get("caption_type", "vinvl"),
                 # BLIP2 (optional)
                 use_blip2=see_config.get("use_blip2", False),
-                blip2_api_urls=see_config.get("blip2_api_urls"),
+                blip2_model_type=see_config.get("blip2_model_type", "Salesforce/blip2-opt-2.7b"),
                 # CLIP
                 use_clip_features=see_config.get("use_clip", True),
                 clip_model_name=see_config.get(

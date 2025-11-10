@@ -9,7 +9,7 @@ from .llm import (
     OpenAIGPT3Adapter,
     OpenAIChatAdapter,
     OPTAdapter,
-    LLaMAAdapter,
+    GroqAdapter,
     create_llm_adapter,
     create_llm_from_args,
 )
@@ -69,7 +69,7 @@ __all__ = [
     "OpenAIGPT3Adapter",
     "OpenAIChatAdapter",
     "OPTAdapter",
-    "LLaMAAdapter",
+    "GroqAdapter",
     "create_llm_adapter",
     "create_llm_from_args",
     # Prompts

@@ -146,10 +146,8 @@ class SceneGraphDetector:
             filename = f"{str(image_id).zfill(12)}.json"
         else:
             filename = f"{image_id.replace('.jpg', '')}.json"
-
         # Load basic scene graph
         sg_path = os.path.join(self.sg_dir, filename)
-
         if not os.path.exists(sg_path):
             return []
 
