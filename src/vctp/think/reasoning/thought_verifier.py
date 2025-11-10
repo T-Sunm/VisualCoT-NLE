@@ -116,11 +116,6 @@ class ThoughtVerifier:
         filtered_text = ". ".join(filtered_thoughts).strip() + "." if filtered_thoughts else ""
         all_text = ". ".join(all_thoughts).strip() + "." if all_thoughts else ""
 
-        if self.debug:
-            print(f"[ThoughtVerifier] Original: {thoughts}")
-            print(f"[ThoughtVerifier] Filtered: {filtered_text}")
-            print(f"[ThoughtVerifier] Similarities: {similarity_scores}")
-
         return filtered_text, all_text, similarity_scores
 
     def _verify_with_blip2(
@@ -152,10 +147,6 @@ class ThoughtVerifier:
         # Join thoughts
         filtered_text = ". ".join(filtered_thoughts).strip() + "." if filtered_thoughts else ""
         all_text = ". ".join(all_thoughts).strip() + "." if all_thoughts else ""
-
-        if self.debug:
-            print(f"[ThoughtVerifier] Original: {thoughts}")
-            print(f"[ThoughtVerifier] Verified: {filtered_text}")
 
         return filtered_text, all_text, []
 

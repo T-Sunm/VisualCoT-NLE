@@ -117,15 +117,7 @@ class VisualConsistencyConfirmer(ConfirmationModule):
         Returns:
             ConfirmationOutput with verification result
         """
-        print(f"\n{'='*80}")
-        print(f"[CONFIRM] Visual Consistency Verification")
-        print(f"{'='*80}")
-        print(f"Method: {self.method}")
-        print(f"Question: {question}")
-        print(f"Candidate Answer: {candidate.candidate_answer}")
-        print(f"CoT Rationale: {candidate.cot_rationale}")
-        print(f"Threshold: {self.verify_threshold}")
-        print(f"{'='*80}")
+        
         # No rationale to verify
         if not candidate.cot_rationale:
             return ConfirmationOutput(
@@ -134,42 +126,33 @@ class VisualConsistencyConfirmer(ConfirmationModule):
 
         if self.method == "clip":
             if evidence.clip_image_embed is None:
-                return ConfirmationOutput(
-                    is_confirmed=True,
-                    score=1.0,
-                    rationale="No image embedding available",
-                )
+                return ConfirmationOutput(...)
 
-            # Verify and filter thoughts based on CLIP similarity
+            print(f"[DEBUG CONFIRM] Rationale to verify: '{candidate.cot_rationale}'")
+            print(f"[DEBUG CONFIRM] Threshold: {self.verify_threshold}")
+                
             filtered, all_thoughts, scores = self.verifier.verify_and_filter(
-                thoughts=candidate.cot_rationale,
-                image_embedding=evidence.clip_image_embed,
-            )
-            print(f"\n[CLIP Verification Results]")
-            print(f"  Original thoughts: {all_thoughts}")
-            print(f"  Filtered thoughts: {filtered}")
-            print(f"  Similarity scores: {scores}")
-            print(f"  Average score: {np.mean(scores) if scores else 0.0:.4f}")
-            print(f"  Threshold: {self.verify_threshold}")
-            print(f"  Passed threshold: {len(filtered)}/{len(scores)} thoughts")
+                    thoughts=candidate.cot_rationale,
+                    image_embedding=evidence.clip_image_embed,
+                )
+                
+
+            print(f"[DEBUG CONFIRM] Thoughts found: {len(all_thoughts)}")
+            print(f"[DEBUG CONFIRM] Thoughts passed: {len(filtered)}")
+            print(f"[DEBUG CONFIRM] Scores: {scores}")
+                
             avg_score = np.mean(scores) if scores else 0.0
             is_confirmed = len(filtered) > 0
-
             rationale = (
                 f"CLIP verified {len(filtered)}/{len(scores)} thoughts "
                 f"(avg similarity: {avg_score:.3f})"
             )
-
-            if self.debug:
-                print(f"Visual Consistency (CLIP): {rationale}")
-                print(f"  Filtered: {filtered}")
-                print(f"  All: {all_thoughts}")
+            print(f"[CONFIRM] CLIP similarity: {avg_score:.4f} ({len(filtered)}/{len(scores)} passed) {'✓' if is_confirmed else '✗'}")
 
             return ConfirmationOutput(
                 is_confirmed=is_confirmed, score=avg_score, rationale=rationale
             )
 
-        # Method: BLIP2 (lines 1081-1094)
         elif self.method == "blip2":
             if image_path is None:
                 return ConfirmationOutput(
@@ -185,10 +168,7 @@ class VisualConsistencyConfirmer(ConfirmationModule):
             is_confirmed = len(filtered) > 0
 
             rationale = f"BLIP2 verified {len(filtered)} valid thoughts (avg score: {avg_score:.3f})"
-
-            if self.debug:
-                print(f"Visual Consistency (BLIP2): {rationale}")
-                print(f"  Filtered: {filtered}")
+            print(f"[CONFIRM] BLIP2 similarity: {avg_score:.4f} ({len(filtered)}/{len(scores)} passed) {'✓' if is_confirmed else '✗'}")
 
             return ConfirmationOutput(
                 is_confirmed=is_confirmed, score=avg_score, rationale=rationale

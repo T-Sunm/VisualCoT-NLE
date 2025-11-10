@@ -153,8 +153,7 @@ class InteractiveLoop:
             "selected_objects": [r.get("selected_objects", []) for r in round_results],
         }
 
-        print(f"[InteractiveLoop] Final Answer: {output['answer']}")
-        print(f"[InteractiveLoop] Accuracy: {accuracy}")
+        print(f"[THINK] Answer: {output['answer']} | Accuracy: {accuracy:.2f} | Rounds: {len(round_results)}")
 
         return output
 

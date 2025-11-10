@@ -284,17 +284,14 @@ class ViVQAXPipeline:
             if limit and idx >= limit:
                 break
 
-            print(f"\n[{idx+1}] Processing sample {sample['question_id']}...")
-            print(f"  Question: {sample['question'][:80]}...")
+            print(f"\n[{idx+1}/{len(self.dataset)}] Sample {sample['question_id']}")
+            print(f"Question: {sample['question']}")
 
             try:
                 result = self.pipeline.run(sample)
                 results.append(result)
-
-                print(f"  Answer: {result['answer']}")
-                print(
-                    f"  Confirmed: {result['confirmed']} (score: {result['score']:.3f})"
-                )
+                accuracy = result.get('accuracy', 0.0)
+                print(f"\nResult: {result['answer']} | Accuracy: {accuracy:.1f} | Score: {result['score']:.3f}")
 
             except Exception as e:
                 print(f"  ERROR: {e}")
@@ -318,8 +315,8 @@ class ViVQAXPipeline:
 
         output_file = os.path.join(output_dir, "results.json")
 
-        with open(output_file, "w") as f:
-            json.dump(results, f, indent=2)
+        with open(output_file, "w", encoding='utf-8') as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
 
         print(f"\nResults saved to: {output_file}")
 
@@ -335,13 +332,9 @@ class ViVQAXPipeline:
             sum(r.get("score", 0.0) for r in results) / total if total > 0 else 0.0
         )
 
-        print(f"\n{'='*70}")
-        print(f"SUMMARY")
-        print(f"{'='*70}")
-        print(f"  Total samples: {total}")
-        print(f"  Confirmed: {confirmed} ({confirmed/total*100:.1f}%)")
-        print(f"  Average score: {avg_score:.3f}")
-        print(f"{'='*70}")
+        print(f"\n{'━'*70}")
+        print(f"SUMMARY - Total: {total} | Confirmed: {confirmed} ({confirmed/total*100:.1f}%) | Avg Score: {avg_score:.3f}")
+        print(f"{'━'*70}")
 
     def _build_iterative_pipeline(self):
         """Build iterative pipeline - uses pre-computed CLIP features."""

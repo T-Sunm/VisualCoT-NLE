@@ -85,14 +85,11 @@ class QuestionAnswerer:
                 thoughts=thoughts,
             )
 
-            print(f"[QuestionAnswerer] Prompt:\n{prompt}")
-
             # Generate response
             response = self.llm.generate(prompt)
 
             # Extract text from response
             response_text = response.text if hasattr(response, "text") else str(response)
-            print(f"[DEBUG] Raw LLM Response: '{response_text}'")
             
             # Parse response
             answer, rationale, confidence = extract_answer_and_rationale(
@@ -140,7 +137,7 @@ class QuestionAnswerer:
             examples=examples,
             thoughts=thoughts,
         )
-        print(f"[QuestionAnswerer] Prompt:\n{prompt}")
+
         # Generate based on engine type
         if self.engine in ["ada", "babbage", "curie", "davinci", "codex", "instruct", "gpt3"]:
             return self._answer_with_gpt3(prompt)
@@ -205,6 +202,7 @@ class QuestionAnswerer:
             answer, rationale, confidence = extract_answer_and_rationale(
                 text, chain_of_thoughts=True
             )
+            print(f"[DEBUG LLM PARSED] Rationale: '{rationale}'")
             return answer, rationale, confidence
         else:
             answer = process_answer(text)

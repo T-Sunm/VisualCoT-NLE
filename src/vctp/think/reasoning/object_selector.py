@@ -73,12 +73,7 @@ class ObjectSelector:
         system_msg, user_msg = self.prompt_builder.build_structured(
             question=question, object_list=object_names, examples=examples
         )
-        print(f"\n{'='*70}")
-        print("[ATTEND MODULE] OBJECT SELECTION PROMPT")
-        print(f"{'='*70}")
-        print(f"SYSTEM: {system_msg}")
-        print(f"\nUSER: {user_msg}")
-        print(f"{'='*70}\n")
+
         try:
             # Call Groq with structured output
             response = self.client.chat.completions.create(
@@ -100,10 +95,6 @@ class ObjectSelector:
             # Parse structured response
             result = ObjectSelection.model_validate(json.loads(response.choices[0].message.content))
 
-            if self.debug:
-                print(f"[ObjectSelector] Selected: {result.selected_object}")
-                print(f"[ObjectSelector] Reasoning: {result.reasoning}")
-
             # Find index of selected object
             selected_name = result.selected_object.strip().lower()
             for idx, obj_name in enumerate(object_names):
@@ -115,16 +106,11 @@ class ObjectSelector:
                 if obj_name.lower() in selected_name or selected_name in obj_name.lower():
                     return idx
 
-            if self.debug:
-                print(
-                    f"[ObjectSelector] Warning: Could not find exact match for '{result.selected_object}', using first object"
-                )
-
             return 0
 
         except Exception as e:
-            if self.debug:
-                print(f"[ObjectSelector] Error during selection: {e}")
+
+            print(f"[ObjectSelector] Error during selection: {e}")
             return 0
 
     def select_multiple_rounds(
@@ -152,9 +138,6 @@ class ObjectSelector:
         for round_num in range(n_rounds):
             if len(remaining_objects) == 0:
                 break
-
-            if self.debug:
-                print(f"[ObjectSelector] Round {round_num + 1}/{n_rounds}")
 
             # Select next object
             idx = self.select_object(question, remaining_objects, examples)

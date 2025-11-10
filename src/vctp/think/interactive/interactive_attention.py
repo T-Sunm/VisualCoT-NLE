@@ -87,8 +87,6 @@ class InteractiveAttention:
         previous_answer = None
 
         for round_idx in range(self.max_rounds):
-            print(f"\n[InteractiveAttention] Round {round_idx + 1}/{self.max_rounds}")
-
             # Check if we have objects left
             if len(remaining_objects) == 0:
                 print("[InteractiveAttention] No more objects to attend to")
@@ -102,11 +100,11 @@ class InteractiveAttention:
             # Validate index
             if selected_idx >= len(remaining_objects):
                 selected_idx = selected_idx % len(remaining_objects)
-                print(f"[InteractiveAttention] Index out of bounds, wrapped to {selected_idx}")
 
             selected_object = remaining_objects[selected_idx]
-
-            print(f"[InteractiveAttention] Selected: {selected_object[1]}")
+            
+            # IN RA SAU KHI ĐÃ CÓ selected_object
+            print(f"[Round {round_idx + 1}/{self.max_rounds}] → {selected_object[1]}", end="")
 
             # Enhance with BLIP2 if needed
             if self.use_blip2 and self.blip2_captioner and image_path:
@@ -142,8 +140,12 @@ class InteractiveAttention:
             # Check for convergence
             current_answer = result.get("answer", "")
             if self.stop_on_convergence and current_answer == previous_answer:
-                print("[InteractiveAttention] Answer converged, stopping early")
+                print(" (converged)")
                 break
+            elif round_idx < self.max_rounds - 1:  # Không in | ở round cuối
+                print(" | ", end="")
+            else:
+                print()  # Xuống dòng ở round cuối
 
             previous_answer = current_answer
 

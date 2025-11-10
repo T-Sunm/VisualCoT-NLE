@@ -12,11 +12,6 @@ from ..think.prompts import FewShotExamplesManager
 class IterativeVCTPPipeline:
     """
     Visual CoT Pipeline with iterative multi-round reasoning.
-
-    Simplified version that follows the original Visual CoT paper:
-    - Always uses LLM to select important objects each round
-    - Accumulates visual evidence iteratively
-    - Stops when answer converges
     """
 
     def __init__(
@@ -126,37 +121,21 @@ class IterativeVCTPPipeline:
         """
         question = sample["question"]
         image_path = sample["image_path"]
-        
         choices = sample.get("choices", [])  
         reference_answer = sample.get("answer", [])
 
-
-        print(f"\n{'='*70}")
-        print(f"Running Iterative Visual CoT Pipeline")
-        print(f"Question: {question}")
-        print(f"{'='*70}")
-
-
-        print("\n[1] SEE: Extracting visual evidence...")
-
+        print(f"\n[Pipeline] Q: {question[:60]}...")
+        print(f"[SEE] ", end="")
         evidence: EvidenceBundle = self.see.run(image_path, question)
-        print(f"\n[DEBUG] Evidence details:")
-        print(f"  - Global caption: '{evidence.global_caption}'")
-        print(f"  - Detected objects: {len(evidence.detected_objects)}")
-        print(f"  - CLIP embed: {'Available' if evidence.clip_image_embed is not None else 'None'}")
+        print(f"Evidence: {len(evidence.detected_objects)} objects, CLIP embed {'✓' if evidence.clip_image_embed is not None else '✗'}")
 
         # Convert evidence to objects format
         objects = self._evidence_to_objects(evidence)
         global_caption = evidence.global_caption or ""
 
-        if self.debug:
-            print(f"  - Detected {len(objects)} objects")
-            print(f"  - Global caption: {global_caption[:80]}...")
-
+        
         # STEP 2-3: ATTEND + THINK - Iterative reasoning with LLM attention
         if objects:
-            print(f"\n[2-3] ATTEND + THINK: Running up to {self.max_rounds} rounds...")
-
             # Generate query key
             query_key = f"{sample.get('image_id', '0')}<->{sample.get('question_id', '0')}"
 
@@ -171,15 +150,12 @@ class IterativeVCTPPipeline:
                 image_embedding=evidence.clip_image_embed,
                 image_path=image_path,
             )
+            print(f"[THINK] Answer: {loop_result}")
 
             answer = loop_result["answer"]
             rationale = loop_result["rationale"]
             all_thoughts = loop_result.get("all_thoughts", [])
             num_rounds = loop_result.get("num_rounds", 1)
-
-            if self.debug:
-                print(f"  - Completed {num_rounds} rounds")
-                print(f"  - Final answer: {answer}")
 
         else:
             reasoning: ReasoningOutput = self.think.run(evidence, question, choices=choices)  # ✅ Đã định nghĩa
@@ -196,14 +172,7 @@ class IterativeVCTPPipeline:
         )
 
         # STEP 4: CONFIRM - Verify answer
-        if self.debug:
-            print("\n[4] CONFIRM: Verifying answer...")
-
         confirmation = self.confirm.run(question, reasoning_output, evidence)
-
-        if self.debug:
-            print(f"  - Confirmed: {confirmation.is_confirmed}")
-            print(f"  - Score: {confirmation.score:.3f}")
 
         # Return results
         return {
@@ -216,6 +185,13 @@ class IterativeVCTPPipeline:
             "rationale": rationale,
             "all_thoughts": all_thoughts,
             "num_rounds": num_rounds,
+            
+            "ground_truth": {
+                "answer": sample.get("answer", []), 
+                "choices": sample.get("choices", []),  
+                "image_path": sample.get("image_path", ""),
+                "dataset": sample.get("dataset", "vivqax")
+            },
         }
 
     def _evidence_to_objects(self, evidence: EvidenceBundle) -> List[List]:

@@ -124,9 +124,7 @@ class FewShotExamplesManager:
         rationale = ""
         if include_rationale and example_key in self.train_rationales:
             rationale_list = self.train_rationales[example_key]
-            if rationale_list:
-                rationale = rationale_list[0]
-
+            rationale = random.choice(rationale_list)
         # Get choices
         choices = None
         if include_choices and example_key in self.train_choices:

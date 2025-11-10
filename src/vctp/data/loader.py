@@ -87,7 +87,7 @@ def build_vivqax_dicts(annotations: List[Dict]) -> tuple:
         
         # Rationale (explanation field)
         explanation = sample.get("explanation", "")
-        rationale_dict[key] = [explanation] if explanation else [""]
+        rationale_dict[key] = explanation if explanation else [""]
     
     return answer_dict, question_dict, rationale_dict
 
