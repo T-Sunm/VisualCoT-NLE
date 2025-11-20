@@ -22,14 +22,19 @@ class EvidenceBundle:
     clip_image_embed: Optional[List[float]]
     region_captions: Optional[List[str]]
 
+    # Thêm debug info cho SEE module
+    debug_info: Optional[Dict[str, Any]] = None
+
 
 @dataclass
 class ReasoningOutput:
     candidate_answer: str
     cot_rationale: str
     used_concepts: List[str]
-    confidence: Optional[float] = None  # ← Thêm dòng này
-    metadata: Optional[Dict[str, Any]] = None  # ← Thêm dòng này
+    confidence: Optional[float] = None 
+    metadata: Optional[Dict[str, Any]] = None  
+
+    debug_info: Optional[Dict[str, Any]] = None
 
 
 @dataclass

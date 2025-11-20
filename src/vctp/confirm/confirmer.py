@@ -141,7 +141,9 @@ class VisualConsistencyConfirmer(ConfirmationModule):
             print(f"[DEBUG CONFIRM] Thoughts passed: {len(filtered)}")
             print(f"[DEBUG CONFIRM] Scores: {scores}")
                 
-            avg_score = np.mean(scores) if scores else 0.0
+            # Only calculate average of scores that passed the threshold
+            filtered_scores = [s for s in scores if s > self.verify_threshold]
+            avg_score = np.mean(filtered_scores) if filtered_scores else 0.0
             is_confirmed = len(filtered) > 0
             rationale = (
                 f"CLIP verified {len(filtered)}/{len(scores)} thoughts "

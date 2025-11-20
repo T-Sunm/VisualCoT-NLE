@@ -141,43 +141,63 @@ class VisualCoTPerception(PerceptionModule):
         generate_region_captions: bool = False,
         **kwargs: Dict[str, Any],
     ) -> EvidenceBundle:
-        """
-        Run perception pipeline on image.
-
-        Args:
-            image_path: Path to image file
-            question: Question being asked (for question-aware captioning)
-            max_objects: Maximum number of objects to detect
-            generate_region_captions: Whether to generate region-specific captions
-            **kwargs: Additional arguments
-
-        Returns:
-            EvidenceBundle containing all perception results
-        """
+        """Run perception pipeline on image."""
         # Extract image ID from path
         image_id = self._get_image_id(image_path)
 
+        # Initialize debug info collector
+        debug_info = {
+            "scene_graph": None,
+            "detected_objects": [],
+            "captions": {},
+            "clip_features": None,
+            "processing_steps": [],
+            "errors": []
+        }
+
         # Step 1: Detect Objects (from scene graph or BLIP2)
+        debug_info["processing_steps"].append("Starting object detection")
         detected_objects, scene_graph_attrs = self._detect_objects(
-            image_id, image_path, max_objects
+            image_id, image_path, max_objects, debug_info
         )
 
         # Step 2: Generate Global Caption
-        global_caption = self._generate_global_caption(image_path, question, scene_graph_attrs)
+        debug_info["processing_steps"].append("Generating global caption")
+        global_caption = self._generate_global_caption(
+            image_path, question, scene_graph_attrs, debug_info
+        )
 
         # Step 3: Generate Region Captions (optional)
         region_captions = None
         if generate_region_captions and detected_objects:
-            region_captions = self._generate_region_captions(image_path, question, detected_objects)
+            debug_info["processing_steps"].append("Generating region captions")
+            region_captions = self._generate_region_captions(
+                image_path, question, detected_objects, debug_info
+            )
 
         # Step 4: Extract CLIP Features
         clip_embed = None
         if self.use_clip_features:
-            clip_embed = self._extract_clip_features(image_path)
+            debug_info["processing_steps"].append("Extracting CLIP features")
+            clip_embed = self._extract_clip_features(image_path, debug_info)
 
         # Step 5: Extract Attributes and Relations
         attributes = self._extract_attributes(scene_graph_attrs)
         relations = self._extract_relations(scene_graph_attrs)
+
+        # Finalize debug info
+        debug_info["scene_graph"] = self.sg_processor.decode(
+            scene_graph_attrs, format_type="text"
+        ) if scene_graph_attrs else ""
+        
+        debug_info["detected_objects"] = [
+            {
+                "name": obj.name,
+                "score": obj.score,
+                "attributes": obj.attributes or []
+            }
+            for obj in detected_objects
+        ]
 
         # Build evidence bundle
         evidence = EvidenceBundle(
@@ -188,14 +208,8 @@ class VisualCoTPerception(PerceptionModule):
             relations=relations,
             clip_image_embed=clip_embed,
             region_captions=region_captions,
+            debug_info=debug_info  # Thêm debug info
         )
-
-        if self.debug:
-            print(f"\nPerception Results for {image_id}:")
-            print(f"  Objects: {len(detected_objects)}")
-            print(f"  Global Caption: {global_caption[:100]}...")
-            print(f"  Attributes: {len(attributes)}")
-            print(f"  Relations: {len(relations)}")
 
         return evidence
 
@@ -216,16 +230,12 @@ class VisualCoTPerception(PerceptionModule):
         return image_id
 
     def _detect_objects(
-        self, image_id: str, image_path: str, max_objects: int
+        self, image_id: str, image_path: str, max_objects: int, debug_info: Dict
     ) -> Tuple[List[DetectedObject], List[List]]:
-        """
-        Detect objects in image.
-
-        Returns:
-            Tuple of (detected_objects, scene_graph_attrs)
-        """
+        """Detect objects in image."""
         detected_objects = []
         scene_graph_attrs = []
+        
         # Try to load from scene graph first
         if self.sg_detector:
             try:
@@ -234,22 +244,23 @@ class VisualCoTPerception(PerceptionModule):
                     include_attributes=True,
                     include_captions=(self.iterative_strategy == "caption"),
                 )
-
+                
+                debug_info["captions"]["scene_graph_source"] = "pre-computed"
+                debug_info["processing_steps"].append(f"Loaded {len(scene_graph_attrs)} objects from scene graph")
+                
                 # Convert to DetectedObject format
                 for attr in scene_graph_attrs[:max_objects]:
                     detected_objects.append(
                         DetectedObject(
-                            name=attr[1],  # class name
-                            bbox=[0, 0, 1, 1],  # placeholder bbox
-                            score=float(attr[0]),  # confidence
+                            name=attr[1],
+                            bbox=[0, 0, 1, 1],
+                            score=float(attr[0]),
                             attributes=attr[2] if len(attr) > 2 else [],
                         )
                     )
 
-                if self.debug:
-                    print(f"Loaded {len(detected_objects)} objects from scene graph")
-
             except Exception as e:
+                debug_info["errors"].append(f"Scene graph loading failed: {str(e)}")
                 if self.debug:
                     print(f"Failed to load scene graph: {e}")
 
@@ -257,26 +268,23 @@ class VisualCoTPerception(PerceptionModule):
         if not detected_objects and self.use_blip2 and self.captioner:
             try:
                 blip2_objects = self.captioner.detect_objects(image_path, max_objects=max_objects)
-
+                debug_info["captions"]["blip2_detection"] = True
+                debug_info["processing_steps"].append(f"BLIP2 detected {len(blip2_objects)} objects")
+                
                 # Convert BLIP2 format to DetectedObject
                 for obj in blip2_objects:
                     detected_objects.append(
                         DetectedObject(
-                            name=obj[1],  # object name
+                            name=obj[1],
                             bbox=[0, 0, 1, 1],
-                            score=float(obj[0]),  # confidence
+                            score=float(obj[0]),
                             attributes=[],
                         )
                     )
-                    # Also create scene_graph_attrs format
                     scene_graph_attrs.append([obj[0], obj[1], [], ""])
 
-                if self.debug:
-                    print(f"Detected {len(detected_objects)} objects with BLIP2")
-
             except Exception as e:
-                if self.debug:
-                    print(f"BLIP2 detection failed: {e}")
+                debug_info["errors"].append(f"BLIP2 detection failed: {str(e)}")
 
         # Sort by confidence
         if scene_graph_attrs:
@@ -285,7 +293,7 @@ class VisualCoTPerception(PerceptionModule):
         return detected_objects, scene_graph_attrs
 
     def _generate_global_caption(
-        self, image_path: str, question: str, scene_graph_attrs: List[List]
+        self, image_path: str, question: str, scene_graph_attrs: List[List], debug_info: Dict
     ) -> str:
         """Generate global image caption."""
         global_caption = ""
@@ -296,40 +304,22 @@ class VisualCoTPerception(PerceptionModule):
                 global_caption = self.captioner.generate_global_caption(
                     image_path, question=question
                 )
+                debug_info["captions"]["global_caption_source"] = "blip2"
+                debug_info["captions"]["global_caption"] = global_caption
             except Exception as e:
-                if self.debug:
-                    print(f"BLIP2 global caption failed: {e}")
+                debug_info["errors"].append(f"BLIP2 global caption failed: {str(e)}")
 
         # Fallback: Use scene graph description
         if not global_caption and scene_graph_attrs:
             global_caption = self.sg_processor.decode(
-                scene_graph_attrs[:10], format_type="text"  # Top 10 objects
+                scene_graph_attrs[:10], format_type="text"
             )
-
+            debug_info["captions"]["global_caption_source"] = "scene_graph"
+            debug_info["captions"]["global_caption"] = global_caption
 
         return global_caption
 
-    def _generate_region_captions(
-        self, image_path: str, question: str, detected_objects: List[DetectedObject]
-    ) -> Dict[str, str]:
-        """Generate captions for specific regions/objects."""
-        region_captions = {}
-
-        if not self.use_blip2 or not self.captioner:
-            return region_captions
-
-        # Generate local captions for top objects
-        for obj in detected_objects[:5]:  # Top 5 objects
-            try:
-                caption = self.captioner.generate_local_caption(obj.name, question, image_path)
-                region_captions[obj.name] = caption
-            except Exception as e:
-                if self.debug:
-                    print(f"Failed to generate caption for {obj.name}: {e}")
-
-        return region_captions
-
-    def _extract_clip_features(self, image_path: str) -> Optional[np.ndarray]:
+    def _extract_clip_features(self, image_path: str, debug_info: Dict) -> Optional[np.ndarray]:
         """Extract CLIP image features."""
         if not self.clip_extractor:
             return None
@@ -338,10 +328,18 @@ class VisualCoTPerception(PerceptionModule):
             features = self.clip_extractor.extract_image_features(
                 image_path, normalize=True, return_numpy=True
             )
-            return features[0] if len(features.shape) == 2 else features
+            clip_features = features[0] if len(features.shape) == 2 else features
+            
+            debug_info["clip_features"] = {
+                "shape": clip_features.shape,
+                "norm": float(np.linalg.norm(clip_features)),
+                "mean": float(np.mean(clip_features)),
+                "std": float(np.std(clip_features))
+            }
+            
+            return clip_features
         except Exception as e:
-            if self.debug:
-                print(f"CLIP feature extraction failed: {e}")
+            debug_info["errors"].append(f"CLIP feature extraction failed: {str(e)}")
             return None
 
     def _extract_attributes(self, scene_graph_attrs: List[List]) -> Dict[str, List[str]]:

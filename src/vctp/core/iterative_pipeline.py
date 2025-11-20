@@ -128,12 +128,11 @@ class IterativeVCTPPipeline:
         print(f"[SEE] ", end="")
         evidence: EvidenceBundle = self.see.run(image_path, question)
         print(f"Evidence: {len(evidence.detected_objects)} objects, CLIP embed {'✓' if evidence.clip_image_embed is not None else '✗'}")
-
+        see_debug_info = evidence.debug_info or {}
         # Convert evidence to objects format
         objects = self._evidence_to_objects(evidence)
         global_caption = evidence.global_caption or ""
 
-        
         # STEP 2-3: ATTEND + THINK - Iterative reasoning with LLM attention
         if objects:
             # Generate query key
@@ -150,12 +149,15 @@ class IterativeVCTPPipeline:
                 image_embedding=evidence.clip_image_embed,
                 image_path=image_path,
             )
-            print(f"[THINK] Answer: {loop_result}")
+            print(f"[THINK] Answer: {loop_result['answer']}")
 
             answer = loop_result["answer"]
             rationale = loop_result["rationale"]
             all_thoughts = loop_result.get("all_thoughts", [])
-            num_rounds = loop_result.get("num_rounds", 1)
+            num_rounds = loop_result.get("rounds", 1)
+            
+            # Extract think debug info
+            think_debug_info = loop_result.get("think_debug_info", {})
 
         else:
             reasoning: ReasoningOutput = self.think.run(evidence, question, choices=choices)  # ✅ Đã định nghĩa
@@ -163,6 +165,7 @@ class IterativeVCTPPipeline:
             rationale = reasoning.cot_rationale
             all_thoughts = [rationale] if rationale else []
             num_rounds = 1
+            think_debug_info = {}
 
         # Create reasoning output for confirmation
         reasoning_output = ReasoningOutput(
@@ -172,7 +175,22 @@ class IterativeVCTPPipeline:
         )
 
         # STEP 4: CONFIRM - Verify answer
-        confirmation = self.confirm.run(question, reasoning_output, evidence)
+        confirmation = self.confirm.run(question, reasoning_output, evidence, image_path=image_path)
+
+        # Create compact think output
+        compact_think_output = {
+            "few_shot_examples": {
+                "count": len(think_debug_info.get("few_shot_examples", [])),
+                "top_3": think_debug_info.get("few_shot_examples", [])[:3]
+            },
+            "similarity_scores": think_debug_info.get("similarity_scores", {}),
+            "confidence": round(think_debug_info.get("confidence", 0.0), 3),
+            "intermediate_thoughts": {
+                "count": len(think_debug_info.get("intermediate_thoughts", [])),
+                "final_thought": think_debug_info.get("intermediate_thoughts", [""])[-1][:100] + "..." if think_debug_info.get("intermediate_thoughts") else ""
+            },
+            "rounds": len(think_debug_info.get("round_details", []))
+        }
 
         # Return results
         return {
@@ -186,9 +204,21 @@ class IterativeVCTPPipeline:
             "all_thoughts": all_thoughts,
             "num_rounds": num_rounds,
             
+            # Thêm debug info chi tiết
+            "see_output": {
+                "scene_graph": see_debug_info.get("scene_graph", ""),
+                "detected_objects": see_debug_info.get("detected_objects", []),
+                "captions": see_debug_info.get("captions", {}),
+                "clip_features": see_debug_info.get("clip_features", {}),
+                "processing_steps": see_debug_info.get("processing_steps", []),
+                "errors": see_debug_info.get("errors", [])
+            },
+            
+            "think_output": compact_think_output,
+            
             "ground_truth": {
-                "answer": sample.get("answer", []), 
-                "choices": sample.get("choices", []),  
+                "answer": sample.get("answer", []),
+                "choices": sample.get("choices", []),
                 "image_path": sample.get("image_path", ""),
                 "dataset": sample.get("dataset", "vivqax")
             },

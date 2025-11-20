@@ -37,10 +37,11 @@ think:
   debug: false
 
 confirm:
+  # name: answer-consistency
   name: visual-consistency
-  method: clip
-  threshold: 0.0
-  debug: false
+  method: blip2
+  threshold: 0.15
+  debug: true
 
 datasets:
   vivqax: configs/datasets/vivqax.yaml

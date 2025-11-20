@@ -206,13 +206,15 @@ class BLIP2ThoughtVerifier(BaseVerifier):
             f"Question: Does this sentence match the facts in the picture? "
             f"Please answer yes or no. Sentence: In this picture, {candidate} Answer:"
         )
-
+        print(f"Prompt BLIP Confirm: {prompt}")
         blip2_answer = self.captioner.query_basic(prompt=prompt)[0].lower()
-
+    
         if self.debug:
             print(f"BLIP2 Verification: {blip2_answer} for '{candidate}'")
 
-        if "no" in blip2_answer:
+        # Kiểm tra word boundary thay vì substring
+        import re
+        if re.search(r'\bno\b', blip2_answer) and not re.search(r'\byes\b', blip2_answer):
             # Request correction
             correction_prompt = (
                 f"Question: Please correct the following sentence according to "
@@ -231,7 +233,7 @@ class BLIP2ThoughtVerifier(BaseVerifier):
 
         Based on lines 1081-1094 from main_aokvqa.py
         """
-        print(f"[CLIP] Verified {len(filtered_thoughts)}/{len(thought_list)} thoughts (avg: {np.mean(scores):.4f})")
+
     
         thought_list = [t.strip() for t in thoughts.split(".") if t.strip()]
 
@@ -250,6 +252,7 @@ class BLIP2ThoughtVerifier(BaseVerifier):
             elif is_valid:
                 filtered_thoughts.append(thought)
 
+        print(f"Verified {len(filtered_thoughts)}/{len(thought_list)} thoughts (avg: {np.mean(scores):.4f})")
         filtered_text = ". ".join(filtered_thoughts).strip()
         if filtered_text:
             filtered_text += "."

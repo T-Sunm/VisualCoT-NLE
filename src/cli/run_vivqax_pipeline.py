@@ -242,9 +242,12 @@ class ViVQAXPipeline:
             return NoOpConfirmer()
 
         elif confirm_name == "visual-consistency":
+            blip2_captioner = self.see_module.captioner
+
             return VisualConsistencyConfirmer(
                 method=confirm_config.get("method", "clip"),
                 verify_threshold=confirm_config.get("threshold", 0.0),
+                blip2_captioner=blip2_captioner,
                 device=self.device,
                 debug=confirm_config.get("debug", False),
             )

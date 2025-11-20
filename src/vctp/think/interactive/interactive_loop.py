@@ -94,8 +94,27 @@ class InteractiveLoop:
         print(f"\n[InteractiveLoop] Processing: {query_key}")
         print(f"[InteractiveLoop] Question: {question}")
 
+        # Initialize debug info
+        think_debug_info = {
+            "few_shot_examples": [],
+            "similarity_scores": {},
+            "confidence": 0.0,
+            "intermediate_thoughts": [],
+            "round_details": []
+        }
+
         # Get few-shot examples for QA
         qa_examples = self._get_qa_examples(query_key)
+        
+        # Collect few-shot debug info
+        if self.context_manager:
+            try:
+                example_keys = self.context_manager.get_qa_context_examples(
+                    query_key=query_key, n_shot=self.n_shot_qa
+                )
+                think_debug_info["few_shot_examples"] = example_keys[:5]  # Top 5 only
+            except Exception as e:
+                think_debug_info["errors"] = [f"Context retrieval failed: {str(e)}"]
 
         # Create reasoning callback for interactive rounds
         def reasoning_callback(selected_objects, accumulated_thoughts):
@@ -119,6 +138,16 @@ class InteractiveLoop:
             image_path=image_path,
         )
 
+        # Collect round debug info
+        for i, round_result in enumerate(round_results):
+            round_debug = {
+                "round": i + 1,
+                "selected_objects": len(round_result.get("selected_objects", [])),
+                "confidence": round_result.get("confidence", 0.0),
+                "answer": round_result.get("answer", "")
+            }
+            think_debug_info["round_details"].append(round_debug)
+
         # Get final result from last round
         if round_results:
             final_result = round_results[-1]
@@ -128,6 +157,10 @@ class InteractiveLoop:
                 "rationale": "",
                 "confidence": 0.0,
             }
+
+        # Finalize debug info
+        think_debug_info["intermediate_thoughts"] = accumulated_thoughts
+        think_debug_info["confidence"] = final_result.get("confidence", 0.0)
 
         # Compute accuracy if reference provided
         accuracy = 0.0
@@ -151,6 +184,7 @@ class InteractiveLoop:
             "round_results": round_results,
             "global_caption": global_caption,
             "selected_objects": [r.get("selected_objects", []) for r in round_results],
+            "think_debug_info": think_debug_info,  # Add debug info
         }
 
         print(f"[THINK] Answer: {output['answer']} | Accuracy: {accuracy:.2f} | Rounds: {len(round_results)}")

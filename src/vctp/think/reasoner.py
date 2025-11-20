@@ -88,110 +88,92 @@ class VisualCoTReasoner(ReasoningModule):
         reference_answer: Optional[List[str]] = None,
         **kwargs: Dict[str, Any],
     ) -> ReasoningOutput:
-        """
-        Run Visual CoT reasoning.
+        
+        # Initialize debug info collector
+        debug_info = {
+            "few_shot_examples": [],
+            "similarity_scores": {},
+            "confidence": 0.0,
+            "intermediate_thoughts": [],
+            "prompt_used": "",
+            "llm_response": "",
+            "processing_steps": [],
+            "errors": []
+        }
 
-        Args:
-            evidence: Evidence bundle from perception
-            question: Question to answer
-            context_caption: Global image caption
-            choices: Multiple choice options
-            example_keys: Keys for few-shot examples
-            accumulated_thoughts: Thoughts from previous rounds
-            reference_answer: Reference answer for scoring
-            **kwargs: Additional arguments
-
-        Returns:
-            ReasoningOutput with answer, rationale, and metadata
-        """
-        # Get few-shot examples
-        examples = []
-        if example_keys and self.examples_manager:
-            examples = self.examples_manager.format_examples_batch(
-                example_keys,
-                include_rationale=self.chain_of_thoughts,
-                include_choices=self.choice_only,
-            )
-
-        # Format scene graph
-        scene_graph_text = self._format_scene_graph(evidence)
-
-        # Apply ablations
-        if self.ablation_visual:
-            scene_graph_text = ""
-
-        thoughts_to_use = [] if self.ablation_reason else (accumulated_thoughts or [])
-
-        # Answer question - prepare sample dict for new signature
+        debug_info["processing_steps"].append("Starting reasoning process")
+        
+        # Get few-shot examples if available
+        if example_keys:
+            debug_info["few_shot_examples"] = example_keys[:5]  # Top 5 only
+            debug_info["processing_steps"].append(f"Using {len(example_keys)} few-shot examples")
+        
+        # Prepare sample dict
         sample_dict = {
             "question": question,
             "choices": choices,
-            "key": kwargs.get("sample_key"),  # If available
-            "train_context": {
-                "examples": examples,
-            },
+            "key": kwargs.get("query_key", ""),
+            "train_context": kwargs.get("train_context", {}),
         }
 
-        # Prepare visual context list
+        # Prepare visual context
+        scene_graph_text = self._format_scene_graph(evidence.detected_objects)
         visual_context_list = []
         if context_caption:
             visual_context_list.append(context_caption)
         if scene_graph_text:
             visual_context_list.append(scene_graph_text)
 
-        # Call answerer with new signature
-        result = self.answerer.answer(
-            sample=sample_dict,
-            visual_context=visual_context_list,
-            thoughts=thoughts_to_use,
-        )
+        debug_info["processing_steps"].append("Formatted visual context")
 
-        # Extract results
-        answer = result.get("answer", "")
-        rationale = result.get("rationale", "")
-        logprob = 0.0
+        # Call answerer
+        try:
+            result = self.answerer.answer(
+                sample=sample_dict,
+                visual_context=visual_context_list,
+                thoughts=accumulated_thoughts or [],
+            )
+            
+            # Extract results
+            answer = result.get("answer", "")
+            rationale = result.get("rationale", "")
+            confidence = result.get("confidence", 0.0)
+            
+            # Store debug info
+            debug_info["confidence"] = confidence
+            debug_info["prompt_used"] = result.get("prompt", "")[:200] + "..." if len(result.get("prompt", "")) > 200 else result.get("prompt", "")
+            debug_info["llm_response"] = result.get("response", "")[:200] + "..." if len(result.get("response", "")) > 200 else result.get("response", "")
+            debug_info["intermediate_thoughts"] = accumulated_thoughts or []
+            
+            debug_info["processing_steps"].append("Generated answer and rationale")
+            
+        except Exception as e:
+            debug_info["errors"].append(f"Answer generation failed: {str(e)}")
+            answer = "Error"
+            rationale = ""
+            confidence = 0.0
 
-        # Verify thoughts if enabled
-        verified_rationale = rationale
-        all_rationale = rationale
-
-        if self.chain_of_thoughts and self.use_thought_verification and rationale:
-            if self.thought_verifier:
-                image_emb = kwargs.get("image_embedding")
-                image_path = kwargs.get("image_path")
-
-                verified_rationale, all_rationale, sim_scores = (
-                    self.thought_verifier.verify_thoughts(
-                        thoughts=rationale, image_embedding=image_emb, image_path=image_path
-                    )
-                )
-
-        # Compute accuracy if reference provided
+        # Compute accuracy
         accuracy = 0.0
         if reference_answer is not None:
             if self.choice_only and choices:
-                # Multiple choice accuracy
                 accuracy = 1.0 if answer in choices and answer == choices[reference_answer] else 0.0
             else:
-                # VQA-style accuracy
+                from vctp.think.prompts.formatters import compute_vqa_score
                 accuracy = compute_vqa_score(answer, reference_answer)
 
-        # Get used concepts from evidence
+        # Get used concepts
         used_concepts = []
         if hasattr(evidence, "detected_objects"):
-            used_concepts = [obj.name for obj in evidence.detected_objects]
+            used_concepts = [obj.name for obj in evidence.detected_objects[:10]]  # Top 10 only
 
         return ReasoningOutput(
             candidate_answer=answer,
-            cot_rationale=verified_rationale or "",
+            cot_rationale=rationale,
+            logprob=0.0,
+            accuracy=accuracy,
             used_concepts=used_concepts,
-            confidence=logprob,
-            metadata={
-                "all_rationale": all_rationale,
-                "logprob": logprob,
-                "accuracy": accuracy,
-                "n_ensemble": self.n_ensemble,
-            },
+            debug_info=debug_info  # Thêm debug info
         )
 
     def _format_scene_graph(self, evidence: EvidenceBundle) -> str:

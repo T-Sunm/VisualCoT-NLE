@@ -1,7 +1,7 @@
 """Interfaces (ABCs) for VCTP modules."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from .types import ConfirmationOutput, EvidenceBundle, ReasoningOutput
 
@@ -29,6 +29,7 @@ class ConfirmationModule(ABC):
         question: str,
         candidate: ReasoningOutput,
         evidence: EvidenceBundle,
+        image_path: Optional[str] = None,
         **kwargs: Dict[str, Any],
     ) -> ConfirmationOutput:
         """Verify candidate answer using evidence and optionally retrieval."""
