@@ -20,5 +20,3 @@ dataset:
   train_answers_file: data/processed/object_similarity/train_object_select_vivqax_answer.pkl
   precomputed_object_similarity_path: data/processed/object_similarity/train_object_select_vivqax_answer.pkl
   
-  # Options
-  choice_only: false

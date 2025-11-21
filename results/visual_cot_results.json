@@ -1,0 +1,11 @@
+[
+  {
+    "question_id": "262146001",
+    "image_id": "262146",
+    "question": "Người đó đang làm gì?",
+    "ground_truth": "trượt tuyết",
+    "prediction": "Người đó đang trượt tuyết.",
+    "context": "\nski: A person skiing down a slope\nNgười đó đang mặc quần áo mùa đông và đứng trên ván trượt tuyết trên một dốc, từ đó ta có thể kết luận rằng người đó đang trượt tuyết.\npant: The pant is black\nNgười đó mặc quần áo mùa đông và đứng trên ván trượt tuyết trên một dốc, từ đó ta có thể kết luận họ đang trượt tuyết.\ntree: The tree is a pine tree\nNgười đó đang mặc quần áo mùa đông và đứng trên ván trượt tuyết trên một dốc, do đó có thể kết luận họ đang trượt tuyết.",
+    "explanation": "Người đó đang mặc quần áo mùa đông và đứng trên ván trượt tuyết trên một dốc, do đó có thể kết luận họ đang trượt tuyết."
+  }
+]

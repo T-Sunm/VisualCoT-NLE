@@ -63,3 +63,11 @@ python src/vctp/data/preprocess/make_clip_features.py `
     --ifeatures data/processed/coco_clip_new/coco_clip_vitb16_train2017_aokvqa_convertedidx_image.npy
 
 python src/cli/run_aokvqa_pipeline.py --config configs/experiments/aokvqa_baseline.yaml --limit 1
+
+
+vllm serve Qwen/Qwen2.5-3B-Instruct \
+    --port 1234 \
+    --dtype auto \
+    --gpu-memory-utilization 0.5 \
+    --max-model-len 2048\
+    --trust-remote-code
