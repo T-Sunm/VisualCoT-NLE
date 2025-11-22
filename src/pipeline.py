@@ -131,11 +131,15 @@ def load_samples(config_path: str, limit: int = 1):
     images_root = Path(ds_cfg["images_root"])
     sg_dir = Path(ds_cfg["scene_graph_attr_dir"])
     
+    # Đọc image_split từ config, mặc định là train2014 nếu không có
+    img_split = ds_cfg.get("image_split", "train2014")
+    img_prefix = f"COCO_{img_split}_"
+
     samples = []
     for ann in anns:
         img_id = ann["image_id"]
         samples.append({
-            "image_path": str(images_root / f"train2014/COCO_train2014_{str(img_id).zfill(12)}.jpg"),
+            "image_path": str(images_root / f"{img_split}/{img_prefix}{str(img_id).zfill(12)}.jpg"),
             "sg_path": str(sg_dir / f"{str(img_id).zfill(12)}.json"),
             "question": ann["question"],
             "answer": ann.get("answer", ""),

@@ -23,7 +23,7 @@ class LLMsThinkPromptBuilder:
     
     def build(self, examples: list, question: str, context: str) -> str:
         """Xây dựng prompt cho bước Predict Answer"""
-        prompt = self.prompt_start
+        prompt = f"{self.system_prompt}\n{self.prompt_start}"
         
         # Few-shot examples
         for ex in examples:

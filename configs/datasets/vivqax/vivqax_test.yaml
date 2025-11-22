@@ -1,0 +1,23 @@
+dataset:
+  name: vivqax_test
+  
+  # Test data
+  annotations_file: /home/research/workspace/data/raw/vivqa-x/annotations/test.json
+  images_root: /home/research/workspace/data/raw/coco/images
+  image_split: val2014 
+  # Training data for few-shot context (vẫn giữ train để lấy examples)
+  train_annotations_file: /home/research/workspace/data/raw/vivqa-x/annotations/train.json
+  train_caption_file: data/processed/captions_vivqax_train.json
+  
+  scene_graph_dir: /home/research/workspace/data/raw/scene-graph/scene_graph_coco14
+  scene_graph_attr_dir: /home/research/workspace/data/raw/scene-graph/scene_graph_coco14_attr
+  concept_caption_dir: /home/research/workspace/data/raw/scene-graph/scene_graph_coco14_caption
+  
+  # CLIP features for few-shot example selection (vẫn dùng train)
+  train_line2sample_idx_file: data/processed/vivqax_qa_line2sample_idx_train.json
+  train_question_features_file: data/processed/coco_clip_vitb16_train_vivqax_question.npy
+  train_image_features_file: data/processed/coco_clip_vitb16_train_vivqax_convertedidx_image.npy
+  train_answers_file: data/processed/object_similarity/train_object_select_vivqax_answer.pkl
+  
+  # Object similarity cho test set (file vừa build)
+  precomputed_object_similarity_path: data/processed/object_similarity/test_object_select_vivqax_answer.pkl

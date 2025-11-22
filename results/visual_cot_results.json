@@ -1,11 +1,11 @@
 [
   {
-    "question_id": "262146001",
-    "image_id": "262146",
-    "question": "Người đó đang làm gì?",
-    "ground_truth": "trượt tuyết",
-    "prediction": "Người đó đang trượt tuyết.",
-    "context": "\nski: A person skiing down a slope\nNgười đó đang mặc quần áo mùa đông và đứng trên ván trượt tuyết trên một dốc, từ đó ta có thể kết luận rằng người đó đang trượt tuyết.\npant: The pant is black\nNgười đó mặc quần áo mùa đông và đứng trên ván trượt tuyết trên một dốc, từ đó ta có thể kết luận họ đang trượt tuyết.\ntree: The tree is a pine tree\nNgười đó đang mặc quần áo mùa đông và đứng trên ván trượt tuyết trên một dốc, do đó có thể kết luận họ đang trượt tuyết.",
-    "explanation": "Người đó đang mặc quần áo mùa đông và đứng trên ván trượt tuyết trên một dốc, do đó có thể kết luận họ đang trượt tuyết."
+    "question_id": "262284001",
+    "image_id": "262284",
+    "question": "Đây là cái gì?",
+    "ground_truth": "vòi sen",
+    "prediction": "phía sau tường",
+    "context": "\nwall: The wall is a wall\nCâu trả lời là \"rao chắn\" vì mô tả chỉ một bức tường mà không có thêm thông tin về đặc điểm khác, và từ \"rao chắn\" chính xác nhất mô tả một bức tường như được đề cập.\nshower: The shower is a shower\nBức tường được mô tả là một bức tường đơn thuần, không có thêm chi tiết về kiểu dáng hoặc chức năng khác. Từ \"bức tường\" chính xác nhất mô tả đối tượng được đề cập trong câu hỏi dựa trên thông tin đã cho.\nshower head: The shower head is a shower head\nBức tường được mô tả không có thêm chi tiết về kiểu dáng hoặc chức năng khác, và từ \"phía sau tường\" đúng nhất mô tả vị trí của bức tường trong ngữ cảnh đã cho.",
+    "explanation": "Bức tường được mô tả không có thêm chi tiết về kiểu dáng hoặc chức năng khác, và từ \"phía sau tường\" đúng nhất mô tả vị trí của bức tường trong ngữ cảnh đã cho."
   }
 ]
