@@ -11,6 +11,7 @@ import argparse
 from core.think.attention_obj import load_object_selector_from_config
 from core.think.caption_obj import ObjectCaptioner
 from core.think.reasoning import Reasoner
+from core.confirm.confirmation import Confirmer
 from utils.models.blip import BLIPClient
 from utils.models.llms import VLLMClient
 from utils.models.clip import CLIPClient
@@ -20,52 +21,93 @@ from tqdm import tqdm
 
 PREDICT_EXAMPLES = [
     {
-        "context": "ski: đôi ván trượt tuyết trên tuyết, person: một người mặc quần áo mùa đông",
         "question": "Người đó đang làm gì?",
-        "answer": "trượt tuyết",
+        "global_description": "An image of a person skiing on a snowy mountain. Key detail related to question: skiing.",
+        "local_clues": [  # ĐỔI TỪ "visual_clues" THÀNH "local_clues"
+            "- person: a person wearing winter clothes, slightly bent forward",
+            "- ski: a pair of skis on the white snow",
+            "- pole: a ski pole held in one hand"
+        ],
+        "verified_thoughts": [
+            "- Người đó đang đi ván trượt trên tuyết, phù hợp với trang phục mùa đông."
+        ],
+        "answer": "trượt tuyết"
     },
     {
-        "context": "dog: một chú chó golden retriever đang chạy, frisbee: một chiếc đĩa bay màu đỏ trên không",
-        "question": "Chú chó đang cố gắng bắt gì?",
-        "answer": "đĩa bay",
+        "question": "Chú chó đang cố gắng bắt cái gì?",
+        "global_description": "An image of a dog running on a grassy field. Key detail related to question: frisbee.",
+        "local_clues": [  # ĐỔI
+            "- dog: a golden retriever dog running forward",
+            "- frisbee: a red flying disc in the air in front of the dog",
+            "- grass: a green grass field"
+        ],
+        "verified_thoughts": [
+            "- Có một chiếc đĩa bay trên không và chú chó đang chạy về phía nó."
+        ],
+        "answer": "đĩa bay"
     },
     {
-        "context": "table: một chiếc bàn ăn bằng gỗ, food: các đĩa mì ống và salad",
         "question": "Cảnh này có thể đang diễn ra ở đâu?",
-        "answer": "phòng ăn",
+        "global_description": "An image of a table with food and drink. Key detail related to question: dining room.",
+        "local_clues": [  # ĐỔI
+            "- table: a wooden dining table",
+            "- food: plates of pasta and salad on the table",
+            "- wine: a glass of red wine next to the plates"
+        ],
+        "verified_thoughts": [
+            "- Cảnh có một bàn ăn với nhiều đồ ăn và rượu vang, đây là đặc điểm của một phòng ăn."
+        ],
+        "answer": "phòng ăn"
     }
 ]
 
 CONFIRM_EXAMPLES = [
     {
-        "context": "ski: đôi ván trượt tuyết trên tuyết, person: một người mặc quần áo mùa đông",
         "question": "Người đó đang làm gì?",
+        "global_description": "An image of a person skiing on a snowy mountain. Key detail: skiing.",
+        "local_clues": [  
+            "- person: a person wearing winter clothes, slightly bent forward",
+            "- ski: a pair of skis on the white snow",
+            "- pole: a ski pole held in one hand"
+        ],
         "answer": "trượt tuyết",
-        "explanation": "Người đó đang mặc quần áo mùa đông và đứng gần ván trượt tuyết trên tuyết, vì vậy họ có thể đang trượt tuyết."
+        "explanation": "Bức ảnh mô tả cảnh người đang trượt xuống dốc tuyết với ván trượt và quần áo mùa đông, nên họ đang trượt tuyết."
     },
     {
-        "context": "dog: một chú chó golden retriever đang chạy, frisbee: một chiếc đĩa bay màu đỏ trên không",
-        "question": "Chú chó đang cố gắng bắt gì?",
+        "question": "Chú chó đang cố gắng bắt cái gì?",
+        "global_description": "An image of a dog running on a grassy field. Key detail: frisbee.",
+        "local_clues": [  
+            "- dog: a golden retriever dog running forward",
+            "- frisbee: a red flying disc in the air in front of the dog",
+            "- grass: a green grass field"
+        ],
         "answer": "đĩa bay",
-        "explanation": "Có một chiếc đĩa bay trên không và chú chó đang chạy về phía nó, vì vậy chú chó đang cố gắng bắt chiếc đĩa bay."
+        "explanation": "Dựa vào việc có một chiếc đĩa bay trên không và chú chó đang chạy về phía nó trong bối cảnh bãi cỏ, hành động hợp lý nhất là bắt đĩa bay."
     },
     {
-        "context": "table: một chiếc bàn ăn bằng gỗ, food: các đĩa mì ống và salad",
         "question": "Cảnh này có thể đang diễn ra ở đâu?",
+        "global_description": "An image of a table with food and drink. Key detail: dining room.",
+        "local_clues": [  
+            "- table: a wooden dining table",
+            "- food: plates of pasta and salad on the table",
+            "- wine: a glass of red wine next to the plates"
+        ],
         "answer": "phòng ăn",
-        "explanation": "Có một chiếc bàn ăn với thức ăn được bày ra trên đó, điều này cho thấy cảnh đang ở trong phòng ăn."
+        "explanation": "Khung cảnh có bàn ăn được bày biện đầy đủ thức ăn và rượu vang là đặc trưng của một phòng ăn."
     }
 ]
+
 
 
 class VisualCoTPipeline:
     """Pipeline: Detect -> Select -> Caption -> Reason -> Confirm -> Loop"""
     
-    def __init__(self, attention_module, caption_module, reason_module, clip_module, 
+    def __init__(self, attention_module, caption_module, reason_module, confirm_module, clip_module, 
                  max_iter=3, clip_threshold=0.2):
         self.attention = attention_module
         self.captioner = caption_module
         self.think = reason_module
+        self.confirmer = confirm_module
         self.clip = clip_module
         self.max_iter = max_iter
         self.clip_threshold = clip_threshold
@@ -74,7 +116,18 @@ class VisualCoTPipeline:
         objects = self.attention.detect_objects(sg_path)
         
         noticed_objects = []
-        P_con = ""  # Context tích lũy (P_con,i từ algorithm)
+        
+        # Tách biệt: global description (string) và local clues (list)
+        global_description = ""
+        local_clues = []
+        verified_thoughts = []
+        
+        # Lấy global caption TRƯỚC vòng lặp
+        print("\n[INFO] Generating global image description...")
+        global_description = self.captioner.caption_global(image_path, question)
+        print(f"[GLOBAL] {global_description}")
+        
+        P_con = global_description
         previous_answer = None
         
         for i in range(self.max_iter):
@@ -86,26 +139,40 @@ class VisualCoTPipeline:
             cap_i = self.captioner.caption(image_path, obj["name"])
             noticed_objects.append({"name": obj["name"], "caption": cap_i})
             
-            # Update context: P_con,i = P_con,i-1 + cap_i
+            # Format visual clue line (local objects)
+            clue_line = f"- {obj['name']}: {cap_i}"
+            local_clues.append(clue_line)
+            
+            # Update P_con
             P_con += f"\n{obj['name']}: {cap_i}"
             
-            # 3. THINK: LLMPredict - dự đoán answer (line 11)
-            a_i = self.think.predict(question, P_con, examples=PREDICT_EXAMPLES)
+            # 3. THINK: LLMPredict - Truyền global_description và local_clues riêng biệt
+            a_i = self.think.predict(question, global_description, local_clues, verified_thoughts, examples=PREDICT_EXAMPLES)
             
-            # 4. CONFIRM: LLMConfirm - generate rationale (line 13)
-            r_i = self.think.confirm(question, P_con, a_i, examples=CONFIRM_EXAMPLES)
+            # 4. CONFIRM: LLMConfirm 
+            r_i = self.confirmer.confirm(
+                question=question, 
+                global_description=global_description, 
+                local_clues=local_clues, 
+                answer=a_i, 
+                examples=CONFIRM_EXAMPLES
+            )
             
-            # 5. VERIFY: Check rationale với CLIP (line 14)
+            # 5. VERIFY: Check rationale với CLIP
             clip_score = self.clip(image_path, r_i)
             
             if clip_score >= self.clip_threshold:
-                # Add rationale vào context (line 15)
+                # Add rationale vào danh sách verified thoughts
+                thought_line = f"- {r_i}"
+                verified_thoughts.append(thought_line)
+                
+                # Update P_con
                 P_con += f"\n{r_i}"
                 print(f"✓ Verified (CLIP: {clip_score:.3f})")
             else:
                 print(f"✗ Rejected (CLIP: {clip_score:.3f})")
             
-            # 6. CONVERGENCE: Check a_i == a_{i-1} (line 17)
+            # 6. CONVERGENCE: Check a_i == a_{i-1}
             print("current answer: ", a_i)
             print("explanation: ", r_i)
             if a_i == previous_answer:
@@ -163,9 +230,10 @@ def main():
         captioner = ObjectCaptioner(BLIPClient())
         llm_client = VLLMClient(model="Qwen/Qwen2.5-3B-Instruct")
         reasoner = Reasoner(llm_client)
+        confirmer = Confirmer(llm_client)
         clip_client = CLIPClient()
         
-        pipeline = VisualCoTPipeline(attention, captioner, reasoner, clip_client, 
+        pipeline = VisualCoTPipeline(attention, captioner, reasoner, confirmer, clip_client, 
                                     clip_threshold=args.threshold)
     except Exception as e:
         print(f"Error initializing modules: {e}")

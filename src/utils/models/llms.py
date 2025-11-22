@@ -20,7 +20,7 @@ class VLLMClient:
             max_tokens=max_tokens
         )
     
-    def __call__(self, prompt: str, system_prompt: str = None) -> str:
+    def __call__(self, prompt: str) -> str:
         """
         Send prompt and get response.
         
@@ -29,11 +29,6 @@ class VLLMClient:
             system_prompt: Optional system prompt string
         """
         messages = []
-        
-        # Thêm system prompt nếu có
-        if system_prompt:
-            messages.append(SystemMessage(content=system_prompt))
-            
         messages.append(HumanMessage(content=prompt))
         
         response = self.llm.invoke(messages)

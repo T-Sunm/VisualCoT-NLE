@@ -1,73 +1,112 @@
 """
-Reasoning Module - Sử dụng LLM để suy luận (Predict & Confirm)
+Reasoning Module - Sử dụng LLM để suy luận (Predict)
 """
 from typing import List, Dict
 from utils.models.llms import VLLMClient
-from utils.prompts.llms_builder.llms_think import LLMsThinkPromptBuilder
-from utils.prompts.llms_builder.llms_confirm import LLMsConfirmPromptBuilder
 
+# System Prompt chỉ chứa Role và Instruction
+SYSTEM_INSTRUCTION = """You are a Visual Reasoning AI expert for Vietnamese.
+You will receive:
+- "Global Image Description": a general description of the whole scene in English.
+- "Visual Clues": detailed object descriptions in English.
+- "Verified Thoughts": previously verified answers and explanations in VIETNAMESE.
+Your goal is to connect these pieces of information to give a short, direct answer to the main question.
+
+Answer style:
+- Respond ONLY with 1–3 Vietnamese words.
+- Do NOT explain.
+"""
 
 class Reasoner:
     """Module suy luận sử dụng LLM theo VCTP paper"""
     
     def __init__(self, llm_client: VLLMClient = None):
         self.llm = llm_client
-        self.think_builder = LLMsThinkPromptBuilder()
-        self.confirm_builder = LLMsConfirmPromptBuilder()
     
-    def predict(self, question: str, context: str, examples: List[Dict] = []) -> str:
-        """LLMPredict: Dự đoán answer"""
-        prompt = self.think_builder.build(examples, question, context)
-        system_prompt = self.think_builder.get_system_prompt()
+    def _build_few_shot_prompt(self, examples: List[Dict]) -> str:
+        """Helper để tạo chuỗi Few-shot từ list dictionary"""
+        if not examples:
+            return ""
+            
+        prompt_parts = ["### FEW-SHOT EXAMPLES ###"]
         
-        # Combine system prompt + user prompt
-        full_prompt = prompt # VLLMClient hiện tại chưa xử lý system prompt tách biệt tốt với một số model
-        if system_prompt:
-             # Với VLLMClient hiện tại, ta có thể prepend system prompt nếu cần
-             # hoặc dùng argument system_prompt nếu client đã update
-             pass
+        for i, ex in enumerate(examples, 1):
+            part = f"[EXAMPLE {i}]\n"
+            part += f"[Question]: {ex.get('question', '')}\n"
+            
+            # TÁCH RIÊNG: Global Description
+            global_desc = ex.get('global_description', '')
+            part += f"[Global Image Description]:\n{global_desc}\n"
+            
+            # TÁCH RIÊNG: Visual Clues (chỉ local objects)
+            local_clues = ex.get('local_clues', [])
+            if isinstance(local_clues, list):
+                visual_clues_str = "\n".join(local_clues)
+            else:
+                visual_clues_str = str(local_clues)
+            part += f"[Visual Clues]:\n{visual_clues_str}\n"
+            
+            # Xử lý Verified Thoughts
+            verified = ex.get('verified_thoughts', '')
+            if isinstance(verified, list):
+                verified_str = "\n".join(verified)
+            else:
+                verified_str = str(verified).strip()
+            
+            part += f"[Verified Thoughts]:\n{verified_str}\n"
+            part += f"[Final Answer]: {ex.get('answer', '')}\n"
+            part += "---"
+            
+            prompt_parts.append(part)
+            
+        return "\n\n".join(prompt_parts)
 
-        print("\n" + "-"*40)
-        print("[LLM PREDICT] Input Prompt:")
-        print(full_prompt)
-        print("-" * 40)
-        
-        response = self.llm(full_prompt)
-        
-        print("[LLM PREDICT] Output:")
-        print(response)
-        print("-" * 40 + "\n")
-        
-        return response.strip()
-    
-    def confirm(self, question: str, context: str, answer: str, examples: List[Dict] = []) -> str:
+    def predict(self, question: str, global_description: str, local_clues: List[str], verified_thoughts: List[str], examples: List[Dict] = []) -> str:
         """
-        LLMConfirm (Algorithm 1, line 13): Generate rationale cho answer
+        LLMPredict: Dự đoán answer
+        Args:
+            question: Câu hỏi
+            global_description: Mô tả tổng quan ảnh (string)
+            local_clues: Danh sách các object clues (list of strings)
+            verified_thoughts: Các suy luận đã được verify
+            examples: Few-shot examples
         """
-        # Pass examples xuống builder
-        prompt = self.confirm_builder.build_rationale_prompt(question, context, answer, examples)
-        system_prompt = self.confirm_builder.get_system_prompt()
-        
-        # Thêm debug print như predict()
-        print("\n" + "-"*40)
-        print("[LLM CONFIRM] Input Prompt:")
-        print(prompt)
-        print("-" * 40)
-        
-        response = self.llm(prompt, system_prompt=system_prompt)
-        
-        print("[LLM CONFIRM] Output:")
-        print(response)
-        print("-" * 40 + "\n")
-        
-        # Clean response ... (giữ nguyên)
-        if "Explanation:" in response:
-            rationale = response.split("Explanation:")[-1].strip()
+        # 1. Format Global Description
+        if not global_description:
+            global_desc_str = "(No global description yet)"
         else:
-            rationale = response.strip()
+            global_desc_str = global_description
         
-        return rationale
-    
+        # 2. Format Visual Clues (chỉ local objects)
+        if not local_clues:
+            visual_clues_str = "(No visual clues yet)"
+        else:
+            visual_clues_str = "\n".join(local_clues)
+            
+        # 3. Format Verified Thoughts
+        if not verified_thoughts:
+            current_thoughts_str = "(No verified thoughts yet)"
+        else:
+            current_thoughts_str = "\n".join(verified_thoughts)
+
+        # 4. Build Few-shot block
+        few_shot_block = self._build_few_shot_prompt(examples)
+
+        # 5. Construct Full Prompt - TÁCH RIÊNG 2 TRƯỜNG
+        prompt = (
+            f"{SYSTEM_INSTRUCTION}\n\n"
+            f"{few_shot_block}\n\n"
+            f"### CURRENT TASK ###\n\n"
+            f"[Question]: {question}\n\n"
+            f"[Global Image Description]:\n{global_desc_str}\n\n"
+            f"[Visual Clues]:\n{visual_clues_str}\n\n"
+            f"[Verified Thoughts]:\n{current_thoughts_str}\n\n"
+            f"[Final Answer]:"
+        )
+        
+        response = self.llm(prompt)
+
+        return response.strip()
+
     def answer(self, question: str, context: str) -> str:
-        """Final answer generation"""
-        return self.predict(question, context)
+        return ""

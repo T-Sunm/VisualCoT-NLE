@@ -4,8 +4,8 @@
     "image_id": "262284",
     "question": "Đây là cái gì?",
     "ground_truth": "vòi sen",
-    "prediction": "phía sau tường",
-    "context": "\nwall: The wall is a wall\nCâu trả lời là \"rao chắn\" vì mô tả chỉ một bức tường mà không có thêm thông tin về đặc điểm khác, và từ \"rao chắn\" chính xác nhất mô tả một bức tường như được đề cập.\nshower: The shower is a shower\nBức tường được mô tả là một bức tường đơn thuần, không có thêm chi tiết về kiểu dáng hoặc chức năng khác. Từ \"bức tường\" chính xác nhất mô tả đối tượng được đề cập trong câu hỏi dựa trên thông tin đã cho.\nshower head: The shower head is a shower head\nBức tường được mô tả không có thêm chi tiết về kiểu dáng hoặc chức năng khác, và từ \"phía sau tường\" đúng nhất mô tả vị trí của bức tường trong ngữ cảnh đã cho.",
-    "explanation": "Bức tường được mô tả không có thêm chi tiết về kiểu dáng hoặc chức năng khác, và từ \"phía sau tường\" đúng nhất mô tả vị trí của bức tường trong ngữ cảnh đã cho."
+    "prediction": "bình tắm",
+    "context": "An image of a bathroom with a shower and a toilet. Key detail: The shower.\nwall: The wall is white\nBức hình mô tả một phòng tắm với bồn tắm, trong khi tường trắng là đặc điểm nhận biết, do đó cái được nhìn thấy trong cảnh này là một bình tắm.\nshower: A shower with a glass door\nBức ảnh mô tả một không gian tắm với bồn tắm có cửa kính, điều này khớp hoàn toàn với hình ảnh của một bình tắm trong nhà vệ sinh.",
+    "explanation": "Bức ảnh mô tả một không gian tắm với bồn tắm có cửa kính, điều này khớp hoàn toàn với hình ảnh của một bình tắm trong nhà vệ sinh."
   }
 ]
