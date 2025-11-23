@@ -14,7 +14,7 @@ from pycocoevalcap.rouge.rouge import Rouge
 from pycocoevalcap.cider.cider import Cider
 from torchmetrics.text import BERTScore
 from underthesea import text_normalize, word_tokenize
-
+import os
 
 # ============================================================================
 # SHARED RESOURCES
@@ -27,16 +27,34 @@ class SharedBERTScoreModel:
     _device = None
     _model_path = None
     
+    HF_MODEL_NAME = "vinai/phobert-base"
+    LOCAL_CACHE_DIR = "/home/research/workspace/model/phobert-base"
+    
     @classmethod
-    def get_instance(cls, model_path: str = "/mnt/dataset1/pretrained_fm/vinai/phobert-base", 
-                     device: str = "cuda") -> BERTScore:
+    def get_model_path(cls) -> str:
+        """Get model path: use local cache if exists, otherwise use HuggingFace."""
+        if os.path.exists(cls.LOCAL_CACHE_DIR):
+            config_file = os.path.join(cls.LOCAL_CACHE_DIR, "config.json")
+            has_model = (
+                os.path.exists(os.path.join(cls.LOCAL_CACHE_DIR, "pytorch_model.bin")) or 
+                os.path.exists(os.path.join(cls.LOCAL_CACHE_DIR, "model.safetensors"))
+            )
+            
+            if os.path.exists(config_file) and has_model:
+                return cls.LOCAL_CACHE_DIR
+        
+        os.makedirs(cls.LOCAL_CACHE_DIR, exist_ok=True)
+        return cls.HF_MODEL_NAME
+    
+    @classmethod
+    def get_instance(cls, device: str = "cuda") -> BERTScore:
         """Get or initialize shared BERTScore model."""
-        if cls._instance is None or cls._model_path != model_path or cls._device != device:
+        if cls._instance is None or cls._device != device:
             cls._device = device
-            cls._model_path = model_path
-            print(f"   🔧 Initializing BERTScore: {model_path} on {device}")
+            cls._model_path = cls.get_model_path()
+            
             cls._instance = BERTScore(
-                model_name_or_path=model_path,
+                model_name_or_path=cls._model_path,
                 num_layers=12,
                 rescale_with_baseline=False,
                 device=device,
@@ -45,7 +63,7 @@ class SharedBERTScoreModel:
                 dist_sync_on_step=False,
                 sync_on_compute=False
             )
-            print("   ✅ BERTScore initialized")
+        
         return cls._instance
 
 
@@ -280,30 +298,68 @@ def compute_bertscore_single(candidate: str, reference: str, device: str = "cuda
 
 
 def compute_bertscore_max_ref(hypotheses: List[str], references: List[List[str]], 
-                              device: str = "cuda") -> List[float]:
+                              device: str = "cuda", batch_size: int = 8) -> List[float]:
     """
     Compute BERTScore F1 with max over multiple references for each hypothesis.
+    Uses batch processing for efficiency.
     
     Args:
         hypotheses: List of predicted texts
         references: List of reference lists (multiple refs per hypothesis)
         device: cuda or cpu
+        batch_size: Batch size for BERTScore computation
         
     Returns:
         List of max BERTScore F1 scores (0-100)
     """
-    max_scores = []
+    if not hypotheses:
+        return []
     
-    for hyp, refs in zip(hypotheses, references):
+    # Prepare all candidate-reference pairs
+    all_candidates = []
+    all_references = []
+    pair_indices = []  # Track which hypothesis each pair belongs to
+    
+    for idx, (hyp, refs) in enumerate(zip(hypotheses, references)):
         valid_refs = [r for r in refs if r.strip()]
         
         if not hyp.strip() or not valid_refs:
-            max_scores.append(0.0)
             continue
         
-        # Compute BERTScore against each reference and take max
-        ref_scores = [compute_bertscore_single(hyp, ref, device) for ref in valid_refs]
-        max_scores.append(max(ref_scores) if ref_scores else 0.0)
+        # Create pairs: repeat hypothesis for each reference
+        for ref in valid_refs:
+            all_candidates.append(hyp)
+            all_references.append(ref)
+            pair_indices.append(idx)
+    
+    if not all_candidates:
+        return [0.0] * len(hypotheses)
+    
+    # Compute BERTScore in batches
+    bertscore = SharedBERTScoreModel.get_instance(device=device)
+    bertscore.reset()
+    
+    # Process in batches
+    all_scores = []
+    for i in range(0, len(all_candidates), batch_size):
+        batch_cands = all_candidates[i:i + batch_size]
+        batch_refs = all_references[i:i + batch_size]
+        
+        bertscore.update(batch_cands, batch_refs)
+        batch_result = bertscore.compute()
+        
+        # Extract F1 scores and convert to list
+        f1_scores = batch_result['f1'].cpu().tolist()
+        if isinstance(f1_scores, float):
+            f1_scores = [f1_scores]
+        
+        all_scores.extend(f1_scores)
+        bertscore.reset()
+    
+    # Group scores by hypothesis and take max
+    max_scores = [0.0] * len(hypotheses)
+    for pair_idx, score in zip(pair_indices, all_scores):
+        max_scores[pair_idx] = max(max_scores[pair_idx], score * 100)
     
     return max_scores
 

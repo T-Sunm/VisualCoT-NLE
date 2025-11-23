@@ -4,12 +4,11 @@ VQA Evaluator class for loading predictions and computing evaluation metrics.
 
 import json
 from typing import Dict, List, Any
-from metrics import (
+from .metrics import ( 
     compute_accuracy,
     compute_all_nlg_metrics,
-    normalize_answer,
     normalize_explanation
-)
+)   
 
 
 def ensure_list(value: Any) -> List[str]:
@@ -44,15 +43,19 @@ class VQAEvaluator:
         """
         Evaluate a single prediction file.
         
+        Metrics:
+        - Accuracy: Computed on answers (exact match)
+        - NLG metrics (BLEU, METEOR, ROUGE, CIDEr, BERTScore): Computed on explanations
+        
         Args:
             json_path: Path to predictions JSON file
             
         Returns:
             Dictionary containing:
-            - accuracy: Overall accuracy
+            - accuracy: Answer accuracy (exact match)
             - total_examples: Total number of examples
-            - correct_count: Number of correct predictions
-            - unfiltered_scores: NLG metrics for all examples
+            - correct_count: Number of correct answers
+            - unfiltered_scores: NLG metrics for explanations
             - by_answer_type: Metrics grouped by answer type
         """
         data = self.load_predictions(json_path)
@@ -66,15 +69,21 @@ class VQAEvaluator:
         
         # Process each example
         for item in data:
-            # Extract and normalize answers
-            gt_ans = item["answer"]
-            pred_ans = item["predict"]
+            # Extract answers (for accuracy)
+            gt_ans = item.get("ground_truth", "")
+            pred_ans = item.get("prediction", "")
             all_gt_answers.append(gt_ans)
             all_pred_answers.append(pred_ans)
             
-            # Extract and normalize explanations
-            gt_expls = [normalize_explanation(e) for e in ensure_list(item["explanation"])]
-            pred_expl = normalize_explanation(item["pred_explanation"])
+            # Extract explanations (for NLG metrics)
+            gt_expls_raw = item.get("gt_explanation", [])
+            gt_expls = [normalize_explanation(e) for e in ensure_list(gt_expls_raw)]
+            if not gt_expls or all(not e.strip() for e in gt_expls):
+                gt_expls = [""]  # Fallback to empty string if no valid explanation
+            
+            pred_expl_raw = item.get("explanation", "")
+            pred_expl = normalize_explanation(pred_expl_raw)
+            
             all_gt_expls.append(gt_expls)
             all_pred_expls.append(pred_expl)
             
@@ -94,7 +103,11 @@ class VQAEvaluator:
             by_type[ans_type]["pred_expls"].append(pred_expl)
         
         # Compute overall metrics
+        print("   📊 Computing answer accuracy...")
         accuracy, correct, total = compute_accuracy(all_pred_answers, all_gt_answers)
+        print(f"   ✅ Answer accuracy: {accuracy:.2f}%")
+        
+        print("   📊 Computing explanation NLG metrics...")
         nlg_scores = compute_all_nlg_metrics(all_gt_expls, all_pred_expls, self.device)
         
         results = {
@@ -107,6 +120,7 @@ class VQAEvaluator:
         
         # Compute metrics by answer type
         for ans_type, data_type in by_type.items():
+            print(f"   📊 Computing metrics for answer_type: {ans_type}...")
             acc, corr, tot = compute_accuracy(data_type["pred_answers"], data_type["gt_answers"])
             scores = compute_all_nlg_metrics(data_type["gt_expls"], data_type["pred_expls"], self.device)
             
