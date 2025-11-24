@@ -15,7 +15,6 @@ class LLMsThinkPromptBuilder:
             "Your task is to answer questions about images based on provided object descriptions.\n"
             "REQUIREMENTS:\n"
             "- Output ONLY the short answer in Vietnamese (Tiếng Việt).\n"
-            "- NO Chinese (Không tiếng Trung), NO English (Không tiếng Anh).\n" # Thêm dòng này
             "- Be concise (1-3 words).\n"
             "- Do NOT explain.\n"
         )

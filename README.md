@@ -71,3 +71,11 @@ vllm serve Qwen/Qwen2.5-3B-Instruct \
     --gpu-memory-utilization 0.5 \
     --max-model-len 2048\
     --trust-remote-code
+
+
+vllm serve 5CD-AI/Vintern-1B-v3_5 \
+    --port 1234 \
+    --dtype auto \
+    --gpu-memory-utilization 0.5 \
+    --max-model-len 2048\
+    --trust-remote-code

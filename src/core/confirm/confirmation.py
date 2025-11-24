@@ -4,18 +4,21 @@ Confirm Module - Generate Rationale
 from typing import List, Dict
 from utils.models.llms import VLLMClient
 
-# 1. System Instruction mới
-CONFIRM_SYSTEM_INSTRUCTION = """You are a Visual Reasoning AI expert for Vietnamese. You will receive a question, a predicted answer, and a list of visual clues. Your goal is to generate ONE logical Vietnamese sentence that explains WHY the predicted answer is correct, based ONLY on the visual clues provided.
+CONFIRM_SYSTEM_INSTRUCTION = """You are a Visual Reasoning AI expert for Vietnamese. 
+You will receive a question, a predicted answer, and a list of visual clues. 
+Your goal is to generate ONE logical Vietnamese sentence that explains WHY the predicted answer is correct, based ONLY on the visual clues provided.
 
 RULES:
-1. Generate one single, complete Vietnamese sentence.
-2. The sentence MUST justify the [Predicted Answer].
-3. The sentence MUST be grounded in the [Visual Clues]."""
+- Generate one single, complete Vietnamese sentence.
+- The sentence MUST justify the [Predicted Answer].
+- The sentence MUST be grounded in the [Visual Clues].
+- The explanation MUST be strictly between 10 and 15 words long.
+"""
 
 class Confirmer:
     """Module xác nhận (Confirm) sử dụng LLM"""
     
-    def __init__(self, llm_client: VLLMClient = None):
+    def __init__(self, llm_client = None):
         self.llm = llm_client
         # Removed old builder: self.confirm_builder = LLMsConfirmPromptBuilder()
     
@@ -51,7 +54,7 @@ class Confirmer:
             
         return "\n\n".join(prompt_parts)
 
-    def confirm(self, question: str, global_description: str, local_clues: List[str], answer: str, examples: List[Dict] = []) -> str:
+    def confirm(self, question: str, global_description: str, local_clues: List[str], answer: str, examples: List[Dict] = [], image_path: str = None) -> str:
         """
         LLMConfirm: Generate rationale cho answer
         """
@@ -82,7 +85,7 @@ class Confirmer:
             f"[Rationale]:"
         )
         
-        response = self.llm(prompt)
+        response = self.llm(prompt, image_path=image_path)
 
         rationale = response.strip()
         if rationale.startswith("[Rationale]:"):

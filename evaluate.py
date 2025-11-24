@@ -31,6 +31,7 @@ def enrich_predictions_with_answer_type(predictions_path: str, annotations_path:
     with open(predictions_path, 'r', encoding='utf-8') as f:
         predictions = json.load(f)
     
+    predictions = predictions[:300]
     # Create question_id to annotation mapping
     ann_map = {ann['question_id']: ann for ann in annotations}
     

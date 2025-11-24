@@ -1,0 +1,4 @@
+model,answer_type,total,correct,accuracy,BLEU-1,BLEU-2,BLEU-3,BLEU-4,METEOR,ROUGE_L,CIDEr,BERTScore_F1
+visual_cot_results,Overall,10,6,60.0,28.69,16.68,9.64,4.56,29.65,26.92,13.43,51.69
+visual_cot_results,other,5,4,80.0,24.79,12.45,6.62,4.1,27.19,24.16,5.85,38.77
+visual_cot_results,yes/no,5,2,40.0,32.5,20.59,12.44,0.0,32.1,29.69,20.53,51.33

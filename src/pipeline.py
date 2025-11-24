@@ -1,6 +1,5 @@
-"""
-Pipeline chính cho Visual CoT
-"""
+from dotenv import load_dotenv
+load_dotenv()
 from pathlib import Path
 from typing import Dict, List
 import tqdm
@@ -15,15 +14,15 @@ from core.confirm.confirmation import Confirmer
 from utils.models.blip import BLIPClient
 from utils.models.llms import VLLMClient
 from utils.models.clip import CLIPClient
+from utils.models.groq_cloud import GroqClient
 from utils.preprocessing_text import extract_explanation
 from tqdm import tqdm
-
 
 PREDICT_EXAMPLES = [
     {
         "question": "Người đó đang làm gì?",
         "global_description": "An image of a person skiing on a snowy mountain. Key detail related to question: skiing.",
-        "local_clues": [  # ĐỔI TỪ "visual_clues" THÀNH "local_clues"
+        "local_clues": [  
             "- person: a person wearing winter clothes, slightly bent forward",
             "- ski: a pair of skis on the white snow",
             "- pole: a ski pole held in one hand"
@@ -36,7 +35,7 @@ PREDICT_EXAMPLES = [
     {
         "question": "Chú chó đang cố gắng bắt cái gì?",
         "global_description": "An image of a dog running on a grassy field. Key detail related to question: frisbee.",
-        "local_clues": [  # ĐỔI
+        "local_clues": [  
             "- dog: a golden retriever dog running forward",
             "- frisbee: a red flying disc in the air in front of the dog",
             "- grass: a green grass field"
@@ -49,7 +48,7 @@ PREDICT_EXAMPLES = [
     {
         "question": "Cảnh này có thể đang diễn ra ở đâu?",
         "global_description": "An image of a table with food and drink. Key detail related to question: dining room.",
-        "local_clues": [  # ĐỔI
+        "local_clues": [  
             "- table: a wooden dining table",
             "- food: plates of pasta and salad on the table",
             "- wine: a glass of red wine next to the plates"
@@ -147,7 +146,7 @@ class VisualCoTPipeline:
             P_con += f"\n{obj['name']}: {cap_i}"
             
             # 3. THINK: LLMPredict - Truyền global_description và local_clues riêng biệt
-            a_i = self.think.predict(question, global_description, local_clues, verified_thoughts, examples=PREDICT_EXAMPLES)
+            a_i = self.think.predict(question, global_description, local_clues, verified_thoughts, examples=PREDICT_EXAMPLES, image_path=image_path)
             
             # 4. CONFIRM: LLMConfirm 
             r_i = self.confirmer.confirm(
@@ -155,7 +154,8 @@ class VisualCoTPipeline:
                 global_description=global_description, 
                 local_clues=local_clues, 
                 answer=a_i, 
-                examples=CONFIRM_EXAMPLES
+                examples=CONFIRM_EXAMPLES,
+                image_path=image_path
             )
             
             # 5. VERIFY: Check rationale với CLIP
@@ -228,7 +228,7 @@ def main():
     try:
         attention = load_object_selector_from_config(args.config)
         captioner = ObjectCaptioner(BLIPClient())
-        llm_client = VLLMClient(model="Qwen/Qwen2.5-3B-Instruct")
+        llm_client = GroqClient(model="meta-llama/llama-4-scout-17b-16e-instruct")
         reasoner = Reasoner(llm_client)
         confirmer = Confirmer(llm_client)
         clip_client = CLIPClient()

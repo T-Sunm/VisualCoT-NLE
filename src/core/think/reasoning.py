@@ -4,23 +4,20 @@ Reasoning Module - Sử dụng LLM để suy luận (Predict)
 from typing import List, Dict
 from utils.models.llms import VLLMClient
 
-# System Prompt chỉ chứa Role và Instruction
 SYSTEM_INSTRUCTION = """You are a Visual Reasoning AI expert for Vietnamese.
-You will receive:
-- "Global Image Description": a general description of the whole scene in English.
-- "Visual Clues": detailed object descriptions in English.
-- "Verified Thoughts": previously verified answers and explanations in VIETNAMESE.
-Your goal is to connect these pieces of information to give a short, direct answer to the main question.
+You will receive a question, global image description, visual clues, and verified thoughts. 
+Your goal is to generate ONE direct Vietnamese answer based ONLY on the information provided.
 
-Answer style:
-- Respond ONLY with 1–3 Vietnamese words.
-- Do NOT explain.
-"""
+RULES:
+- Generate one single, complete Vietnamese answer.
+- The answer MUST be grounded in the [Visual Clues] and [Verified Thoughts].
+- The answer MUST be strictly between 1 and 3 words long.
+- Do NOT provide explanations or reasoning."""
 
 class Reasoner:
     """Module suy luận sử dụng LLM theo VCTP paper"""
     
-    def __init__(self, llm_client: VLLMClient = None):
+    def __init__(self, llm_client = None):
         self.llm = llm_client
     
     def _build_few_shot_prompt(self, examples: List[Dict]) -> str:
@@ -61,7 +58,7 @@ class Reasoner:
             
         return "\n\n".join(prompt_parts)
 
-    def predict(self, question: str, global_description: str, local_clues: List[str], verified_thoughts: List[str], examples: List[Dict] = []) -> str:
+    def predict(self, question: str, global_description: str, local_clues: List[str], verified_thoughts: List[str], examples: List[Dict] = [], image_path: str = None) -> str:
         """
         LLMPredict: Dự đoán answer
         Args:
@@ -69,7 +66,8 @@ class Reasoner:
             global_description: Mô tả tổng quan ảnh (string)
             local_clues: Danh sách các object clues (list of strings)
             verified_thoughts: Các suy luận đã được verify
-            examples: Few-shot examples
+            examples: Few-shot examples,
+            image_path: Path to image file
         """
         # 1. Format Global Description
         if not global_description:
@@ -104,7 +102,7 @@ class Reasoner:
             f"[Final Answer]:"
         )
         
-        response = self.llm(prompt)
+        response = self.llm(prompt, image_path=image_path)
 
         return response.strip()
 
