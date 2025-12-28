@@ -1,43 +1,119 @@
-# VisualCoT Refactor (See–Think–Confirm)
+# VisualCoT for ViQVQA (See–Think–Confirm)
 
-Quickstart:
+## 🚀 Quick Setup (One-time Installation)
 
-1. Create env
-   - Conda: `conda env create -f environment.yml && conda activate visualcot`
-   - Pip: `python -m venv .venv && .venv/Scripts/activate && pip install -r requirements.txt`
-2. Prepare data: See `scripts/download_data.sh` and place datasets under `data/raw/`
-3. Run preprocess (placeholder): `python -m src.cli.preprocess --config configs/experiments/aokvqa_baseline.yaml`
-4. Evaluate (when ready): `python -m src.cli.evaluate --config configs/experiments/aokvqa_baseline.yaml`
+This guide assumes you are working in the `~/workspace/VisualCoT-NLE` directory.
 
-See `docs/` for architecture and reproduction details.
-Code for [paper](https://arxiv.org/abs/2301.05226) *Visual Chain-of-Thought Prompting for Knowledge-based Visual Reasoning*
-## Overall framework
-![framework](framework.png)
-
-## Preprocess datasets
-* Coco dataset 2014 and 2017
-* Download OK-VQA and AOK-VQA dataset, following the [PICa](https://github.com/microsoft/PICa) format
-* For A-OKVQA, run preprocess script (`preprocess/preprocess_aokvqa.sh` for AOK-VQA). For OK-VQA, you need to modify the script a little to fit its format (A-OKVQA and OK-VQA have similar formats).
-* Make training object similarity file (`object_similarity/object_similarity_aokvqa.sh` for AOK-VQA and `object_similarity/object_similarity_okvqa.sh` for OK-VQA)
-## Prepare Scene graph and captions
-* Before running experiments, VisualCoT also need scene graph and captions, including three files for each input image (under `input_text/scene_graph_text/scene_graph_coco17`, `input_text/scene_graph_text/scene_graph_coco17_attr`, and `input_text/scene_graph_text/scene_graph_coco17_caption`). We have provided an example of image No.57 under each dir. Please follow the format of the examples and get scene graphs for all other images.
-* If you do not want to inference a scene graph model to get the scene graphs, here we provide the scene graphs and captions we generated (need additional process to match the format of above three examples):
-  * [Dense Captions](https://umass-my.sharepoint.com/:u:/g/personal/qinhongzhou_umass_edu/ETTHSIaFZt1AnxyZjGDfAhEBIxn1CKM8JIle6rRjFHlLaQ?e=05Bt7N).
-  * [Attributes](https://umass-my.sharepoint.com/:u:/g/personal/qinhongzhou_umass_edu/EZh2wLg5CrNIku4nWew40QgB6hwbJiD6jBy5oAxXVYA0zQ?e=TISTYq) for COCO17 test dataset.
-  * [Relations and Objects](https://umass-my.sharepoint.com/:u:/g/personal/qinhongzhou_umass_edu/ETf9rj1yrFFJmEkJFGvvCBEBQ1uDz3b6LTSafigANyZcBg?e=15rBIw) for COCO17 test dataset.
-  * [Attributes](https://umass-my.sharepoint.com/:u:/g/personal/qinhongzhou_umass_edu/EYNsQp_JD5ZGqmImfz3AWTgBQ3NCPIP9GOGASzLpEXIATQ?e=TD2ToA) for COCO17
-  * [Relations and Objects](https://umass-my.sharepoint.com/:u:/g/personal/qinhongzhou_umass_edu/ESSSDHfvXEFMrggmJeuExlEBgCmJar5Ibt17z8yY9ZFgdw?e=cfEisT) for COCO17
-## Run experiments
-* `run_aokvqa.sh` for AOK-VQA
-* `run_okvqa.sh` for OK-VQA
-## Main Results
-| Backbone    | OK-VQA test (DA) | AOK-VQA val (DA) | AOK-VQA test (DA) |
-|-------------|------------------|------------------|-------------------|
-| OPT-66B     | 44.6             | 46.4             | 46.0              |
-| Llama-2-70B | 54.9             | 50.5             | 54.4              |
-## Cite
-arXiv version
+### 1. Activate Environment
+```bash
+source /home/research/my_envs/vllm_env/bin/activate
 ```
+*Your prompt should change to `(vllm_env)`.*
+
+### 2. Install vLLM
+```bash
+uv pip install vllm --torch-backend=auto
+```
+
+### 3. Install Dependencies
+
+**VisualCoT-NLE Dependencies:**
+```bash
+uv add -r requirements.txt
+```
+
+**Describe-Anything (DAM) - External:**
+```bash
+cd external/describe-anything
+pip install -v .
+cd ../..
+```
+
+---
+
+## 🛠️ Usage Guide (Runtime)
+
+⚠️ **Quan trọng**: Cần mở **3 terminal riêng biệt** để chạy các server và pipeline.
+
+---
+
+### Terminal 1: Start vLLM Server (LLM API)
+
+```bash
+# Activate môi trường vLLM
+source /home/research/my_envs/vllm_env/bin/activate
+
+# Start vLLM với Vintern-1B (cho tiếng Việt)
+vllm serve 5CD-AI/Vintern-1B-v3_5 \
+    --port 1234 \
+    --dtype auto \
+    --gpu-memory-utilization 0.5 \
+    --max-model-len 2048 \
+    --trust-remote-code
+```
+> Server sẽ chạy tại `http://localhost:1234`
+
+---
+
+### Terminal 2: Start DAM Server (Describe-Anything Model)
+
+```bash
+# Activate môi trường vLLM (hoặc môi trường riêng nếu có)
+source /home/research/my_envs/vllm_env/bin/activate
+
+# Di chuyển vào thư mục DAM
+cd ~/workspace/VisualCoT-NLE/external/describe-anything
+
+# Start DAM server
+python dam_server.py \
+    --model-path nvidia/DAM-3B \
+    --conv-mode v1 \
+    --prompt-mode focal_prompt \
+    --port 8000
+```
+> Server sẽ chạy tại `http://localhost:8000`
+
+---
+
+### Terminal 3: Run ViQVQA Pipeline
+
+```bash
+# Activate môi trường chính của project
+source /home/research/my_envs/vllm_env/bin/activate
+
+# Di chuyển vào thư mục project
+cd ~/workspace/VisualCoT-NLE
+
+# Chạy pipeline
+python src/pipeline.py \
+    --config configs/experiments/vivqax_baseline.yaml \
+    --limit 300 \
+    --output results/vivqax_results.json
+```
+
+---
+
+## 📊 Kiểm tra kết quả
+
+Sau khi chạy xong, kết quả được lưu tại:
+```
+results/vivqax_results.json
+```
+
+---
+
+## 📂 Data Preparation
+
+Đảm bảo cấu trúc dữ liệu sau:
+- **Images**: COCO images (`data/raw/coco/images/val2014`)
+- **Annotations**: ViVQA-X annotations (`data/raw/vivqa-x/annotations/test.json`)
+- **Scene Graphs**: Pre-computed scene graphs tại `data/raw/scene-graph/`
+
+---
+
+## 📄 Citation
+[Visual Chain-of-Thought Prompting for Knowledge-based Visual Reasoning](https://arxiv.org/abs/2301.05226)
+```bibtex
 @article{chen2023see,
   title={Visual Chain-of-Thought Prompting for Knowledge-based Visual Reasoning},
   author={Chen, Zhenfang and Zhou, Qinhong and Shen, Yikang and Hong, Yining and Sun, Zhiqing and Gutfreund, Dan and Gan, Chuang},
@@ -45,37 +121,3 @@ arXiv version
   year={2023}
 }
 ```
-
-
-python -m src.vctp.data.preprocess.object_similarity.cli `
-    --dataset aokvqa `
-    --split train `
-    --sg_path "./data/processed/input_text/scene_graph_text" `
-    --annotations_dir "./data/raw/aokvqa_annotations" `
-    --output_path "./data/processed/object_similarity/train_object_select_aokvqa_answer.pkl" `
-    --metric answer `
-    --device cuda
-
-python src/vctp/data/preprocess/make_clip_features.py `
-    --questions data/raw/aokvqa_annotations/aokvqa_v1p0_train_from_hf.json `
-    --images data/raw/aokvqa_images/ `
-    --qfeatures data/processed/coco_clip_new/coco_clip_vitb16_train2017_aokvqa_question.npy `
-    --ifeatures data/processed/coco_clip_new/coco_clip_vitb16_train2017_aokvqa_convertedidx_image.npy
-
-python src/cli/run_aokvqa_pipeline.py --config configs/experiments/aokvqa_baseline.yaml --limit 1
-
-
-vllm serve Qwen/Qwen2.5-3B-Instruct \
-    --port 1234 \
-    --dtype auto \
-    --gpu-memory-utilization 0.5 \
-    --max-model-len 2048\
-    --trust-remote-code
-
-
-vllm serve 5CD-AI/Vintern-1B-v3_5 \
-    --port 1234 \
-    --dtype auto \
-    --gpu-memory-utilization 0.5 \
-    --max-model-len 2048\
-    --trust-remote-code
