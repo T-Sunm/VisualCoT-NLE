@@ -104,10 +104,38 @@ results/vivqax_results.json
 
 ## 📂 Data Preparation
 
-Đảm bảo cấu trúc dữ liệu sau:
-- **Images**: COCO images (`data/raw/coco/images/val2014`)
-- **Annotations**: ViVQA-X annotations (`data/raw/vivqa-x/annotations/test.json`)
-- **Scene Graphs**: Pre-computed scene graphs tại `data/raw/scene-graph/`
+### Automated Download
+
+#### 1. Download COCO 2014 Images (train + val)
+```bash
+bash scripts/download_data.sh
+```
+This will download and extract COCO 2014 images to `data/raw/coco/images/`.
+
+#### 2. Download ViVQA-X Annotations (train + val + test)
+```bash
+python scripts/download_vivqax.py
+```
+This will download ViVQA-X annotations from Hugging Face to `data/raw/vivqa-x/annotations/`.
+
+### Expected Directory Structure
+
+After running both scripts, your data directory should look like:
+```
+data/
+└── raw/
+    ├── coco/
+    │   └── images/
+    │       ├── train2014/          # ~82,783 images
+    │       └── val2014/            # ~40,504 images
+    ├── vivqa-x/
+    │   └── annotations/
+    │       ├── train.json          # Training annotations
+    │       ├── val.json            # Validation annotations
+    │       └── test.json           # Test annotations
+    └── scene-graph/                # Pre-computed scene graphs (if needed)
+```
+
 
 ---
 
